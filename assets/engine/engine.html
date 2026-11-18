@@ -142,7 +142,17 @@
    所有随机量走确定性哈希，同一 t 永远同一画面。
 ================================================================== */
 const NS = "http://www.w3.org/2000/svg";
-const W = 1920, H = 1080;
+/* 画布尺寸默认 16:9。封面另有一版 4:3（B 站），由 cover.py 在挂载前调 setCanvas 改。
+   注意：改 W/H 只对「按 W/H 现算」的场景安全，所以 4:3 只跑专用的 cover43 场景。 */
+let W = 1920, H = 1080;
+window.setCanvas = (w, h) => {
+  W = w; H = h;
+  const st = document.getElementById("stage");
+  if (st) {
+    st.setAttribute("width", w); st.setAttribute("height", h);
+    st.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  }
+};
 
 /* ---------------- 手绘后端（Rough.js） ----------------
    同一个 el() 出口，所有图元自动换成抖动版。
@@ -1135,6 +1145,70 @@ SCENES.title = {
         d.g.setAttribute("transform", `translate(${d.x} ${d.y + Math.sin(tt * 1.4 + d.p) * 20})`);
         d.g.setAttribute("opacity", 0.4 + 0.6 * Math.abs(Math.sin(tt + d.p)));
       });
+    };
+  }
+};
+
+/* ---------- cover43：4:3 封面（B 站等平台用） ----------
+   和 title 的 16:9 封面是两套独立构图：4:3 更窄，标题和人物要重新排。
+   背景自带木纹，不依赖本集 BG —— 那些场景按 1920 宽写死，放进 1440 会溢出。
+------------------------------------------------------------------------- */
+SCENES.cover43 = {
+  mount(host, seg) {
+    // 桌面
+    el("rect", { width: W, height: H, fill: "#8A5A32" }, host);
+    for (let i = 0; i < 20; i++) {
+      el("path", { d: `M 0 ${250 + i * 62} H ${W}`, stroke: "#6E4526",
+                   "stroke-width": 5, opacity: 0.42 }, host);
+    }
+    el("rect", { width: W, height: H, fill: "url(#gVig)", opacity: 0.34 }, host);
+
+    // 主体：本集封面的 figure，等比缩到 4:3 空间
+    const fn = FIGURES[seg.cover];
+    if (fn) {
+      const g = el("g", {}, host);
+      fn(g, seg);
+      const k = seg.coverScale2 || 0.72;
+      g.setAttribute("transform",
+        `translate(${Math.round(W * 0.487)} ${Math.round(H * 0.442)}) scale(${k}) translate(-960 -540)`);
+    }
+
+    const M = Math.round(W * 0.05);
+    const brand = el("g", {}, host);
+    const b = txt(brand, seg.brand || "考考&小熹", M, M + 6, Math.round(W * 0.026), INK, 800, "start");
+    b.setAttribute("stroke", CREAM); b.setAttribute("stroke-width", 10);
+    b.setAttribute("stroke-linejoin", "round"); b.setAttribute("paint-order", "stroke fill");
+    el("path", { d: `M ${M} ${M + 28} H ${M + W * 0.21}`, stroke: CREAM, "stroke-width": 8, "stroke-linecap": "round" }, brand);
+
+    // 标题：竖排区只有半屏宽，字号按最长行压
+    const lines = (seg.titleLines && seg.titleLines.length) ? seg.titleLines.slice(0, 2) : [seg.title || ""];
+    const longest = Math.max(1, ...lines.map(l => l.length));
+    const fs = Math.max(52, Math.min(96, Math.floor((W * 0.46) / longest)));
+    const head = el("g", {}, host);
+    lines.forEach((ln, i) => {
+      const t = txt(head, ln, M, M + 130 + i * fs * 1.16, fs, INK, 800, "start");
+      t.setAttribute("stroke", CREAM); t.setAttribute("stroke-width", Math.round(fs * 0.17));
+      t.setAttribute("stroke-linejoin", "round"); t.setAttribute("paint-order", "stroke fill");
+    });
+
+    // 两个角色：更窄的画面里靠得更近
+    const c = seg.chars === false ? null : castChars(host, {
+      kaoX: seg.kaoX || Math.round(W * 0.205), xiX: seg.xiX || Math.round(W * 0.795),
+      feet: seg.feet || Math.round(H * 0.945),
+      kaoScale: seg.kaoScale || 0.84, xiScale: seg.xiScale || 1.55,
+      kaoExpr: seg.kaoExpr || "wow",
+      xiView: "front", xiExpr: seg.xiExpr || "happy", xiTail: seg.xiTail || "wag",
+    });
+
+    return (tt, u) => {
+      const k = easeOut(clamp(u / 0.12, 0, 1));
+      head.setAttribute("opacity", k);
+      brand.setAttribute("opacity", k);
+      if (c) {
+        c.kaoG.setAttribute("transform", `translate(${c.kx} ${c.feet}) scale(${c.KS})`);
+        c.xiG.setAttribute("transform", `translate(${c.xx} ${c.feet + Math.sin(tt * 2.0) * 6}) scale(${c.XS})`);
+        if (c.kao.__eyes) blink(c.kao.__eyes, tt, 3);
+      }
     };
   }
 };

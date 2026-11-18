@@ -117,7 +117,7 @@ agent_created: true
 | 字号 | 引擎按最长行自适应，下限 64px；一行别超过 9 字 |
 | 安全边距 | 四周 104px，平台裁切不会切到字 |
 | 副标 | `kicker` 和标题重复时自动不画 |
-| 尺寸 | 只做 1920×1080 横屏 |
+| 尺寸 | 视频 1920×1080；封面另出一版 **1440×1080（4:3）** 给 B 站 |
 
 ```json
 {"type":"title","bg":"木桌","cover":"封面鳗鱼饭","coverScale":1.05,"coverX":-70,
@@ -130,7 +130,17 @@ agent_created: true
 `cover` 要指向本集 `scenery.js` 里注册的 figure，**画在右半边**（x 约 1100–1800），别铺满整屏。
 没有 `cover` 就退回旧的居中版，会报警。
 
-人物默认站位：考考 `kaoX=400 / kaoScale=0.86`，小熹 `xiX=1470 / xiScale=1.56`，脚底 `feet=1102`（略出画，
+### 两种封面比例
+
+```bash
+python3 <skill>/scripts/cover.py ep08/script.json --ratio 16:9   # 1920×1080，和视频首帧一致
+python3 <skill>/scripts/cover.py ep08/script.json --ratio 4:3    # 1440×1080，B 站封面
+```
+
+4:3 走的是独立的 `cover43` 场景：标题、两个角色、主体按窄画布重新排，不是把 16:9 裁一刀。
+背景木纹由场景自带（本集 BG 按 1920 写死，塞进 1440 会溢出）。主体缩放用 `coverScale2`（默认 0.72）。
+
+人物默认站位（16:9）：考考 `kaoX=400 / kaoScale=0.86`，小熹 `xiX=1470 / xiScale=1.56`，脚底 `feet=1102`（略出画，
 腿被画面下沿切掉一点是封面惯用的「从底下探出来」）。要调就覆盖这些字段；`"chars": false` 可以整体关掉。
 
 ## 镜头要有景别（否则像 PPT）

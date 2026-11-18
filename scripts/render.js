@@ -31,6 +31,8 @@ const has = f => args.includes(f);
 
 const FPS = parseFloat(arg('--fps', '30'));
 const SCALE = parseFloat(arg('--scale', '1'));
+const CW = parseInt(arg('--w', '1920'), 10);
+const CH = parseInt(arg('--h', '1080'), 10);
 const ROUGH = has('--style') && arg('--style') === 'rough';
 const PREVIEW = arg('--preview', null);
 const FORCE = has('--force');
@@ -73,11 +75,15 @@ async function shutdown(browser) {
            '--force-color-profile=srgb', '--font-render-hinting=none', '--disable-lcd-text'],
   });
   const page = await browser.newPage();
-  await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: SCALE });
+  await page.setViewport({ width: CW, height: CH, deviceScaleFactor: SCALE });
 
   const q = ROUGH ? '?style=rough' : '';
   await page.goto('file://' + path.resolve(enginePath) + q, { waitUntil: 'load' });
   await page.evaluate(() => document.fonts.ready);
+  // 非 16:9 画布（如 4:3 封面）必须在注册场景前改好，场景挂载时才拿得到正确的 W/H
+  if (CW !== 1920 || CH !== 1080) {
+    await page.evaluate((w, h) => window.setCanvas(w, h), CW, CH);
+  }
   // 每集专属场景：必须在 setTimeline 之前注册，否则挂载时找不到 BG[name]
   if (SCENERY) {
     const abs = path.resolve(SCENERY);

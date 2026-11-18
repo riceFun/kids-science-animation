@@ -23,6 +23,7 @@ python3 scripts/build.py ep01/script.json --preview 8,40,120   # 抽帧看排版
 python3 scripts/build.py ep01/script.json --draft              # 960×540 草稿
 python3 scripts/build.py ep01/script.json --grain              # 1080p 正片
 python3 scripts/build.py ep01/script.json --check-align        # 只查字幕/语音是否对齐
+python3 scripts/cover.py ep01/script.json --ratio 4:3          # 导出 4:3 封面（B 站）
 ```
 
 ## 目录
