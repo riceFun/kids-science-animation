@@ -643,6 +643,18 @@ def main():
         print(f"   ! 未注册的 figure：{', '.join(miss_fig)}")
         print("     用 scenery.js 的 SCENE_KIT.figure(\"名字\", ...) 画出来")
 
+    # 开场钩子：先给一个具体场面，再报题。上来就讲主题，观众容易划走
+    hooks = [s for s in segs if s.get("hook")]
+    if not hooks:
+        print("   ! 开头没有钩子：前 10–15 秒先给一个具体场面（谁在做什么、出了什么事），别一上来就报题")
+    else:
+        first = min(i for i, s in enumerate(segs) if s.get("hook"))
+        if first > 0:
+            print(f"   ! 钩子从第 {first} 段才开始：钩子要放在 title 前面")
+        hd = sum(s.get("dur", 0) for s in hooks)
+        if hd and not (10 <= hd <= 20):
+            print(f"   ! 钩子 {hd:.1f}s：控制在 10–20 秒，太长就变成正片了")
+
     # 片头同时是封面：没有封面主体，缩略图就看不出这集讲什么
     no_cover = [i for i, s in enumerate(segs) if s.get("type") == "title" and not s.get("cover")]
     if no_cover:
@@ -719,10 +731,12 @@ def main():
         if old and old != sig and not a.force:
             print(f"   ! 时间线已变（{old} → {sig}），旧帧作废，自动全量重渲")
             a.force = True
-        with open(marker, "w", encoding="utf-8") as f:
-            f.write(sig)
         render_frames(np_path, tl_path, frames_dir, fps, scale, total, ext, a.jobs, a.rough, a.force,
                       scenery=scenery_path)
+        # 签名必须在渲染**成功之后**才写：中途失败（并发过高、Chrome 崩）时如果已经写了，
+        # 下次重跑会认为帧是新的，直接跳过 —— 成片里就会留下上一个版本时间线的旧帧。
+        with open(marker, "w", encoding="utf-8") as f:
+            f.write(sig)
         step("渲染帧")
 
     # 4) 音轨
