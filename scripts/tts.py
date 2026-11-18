@@ -151,6 +151,8 @@ def synthesize(text, role, out_wav, cache_dir, force=False, mp3_hint=None, cfg=N
     # 尾巴上 edge-tts 常留 80ms 静音，统一裁掉，节奏更紧
     af.append("areverse,atrim=start=0.06,areverse")
 
+    if not os.path.exists(mp3) or os.path.getsize(mp3) < 1024:
+        raise RuntimeError(f"音频为空（{os.path.basename(mp3)}）：{text[:24]}")
     _run(["ffmpeg", "-y", "-v", "error", "-i", mp3, "-af", ",".join(af),
           "-ac", "1", "-ar", "44100", cached])
     os.remove(mp3)
@@ -175,6 +177,11 @@ async def _prefetch(tasks, concurrency):
                 comm = edge_tts.Communicate(t["text"], cfg["voice"],
                                             rate=cfg["rate"], pitch=cfg["pitch"])
                 await comm.save(t["mp3"])
+                # EdgeTTS 偶尔会"成功"写出 0 字节文件（服务端没吐音频）。
+                # 这种必须删掉当失败处理，否则会被缓存住，后面每次都拿它去转码。
+                if os.path.getsize(t["mp3"]) < 1024:
+                    os.remove(t["mp3"])
+                    raise RuntimeError("空音频")
                 stat["ok"] += 1
             except Exception as e:  # noqa: BLE001
                 stat["fail"] += 1
@@ -194,7 +201,15 @@ def split_sentences(text):
     if not text:
         return []
     parts = [p.strip() for p in _SENT_RE.split(text) if p.strip()]
-    return parts or [text]
+    # 「？！」这种连写标点会被切成只剩标点的碎片，而 EdgeTTS 对纯标点返回空音频
+    # （进而写进缓存变成 0 字节）。把没有文字的碎片并回上一句。
+    merged = []
+    for p in parts:
+        if merged and not re.search(r"[0-9A-Za-z\u4e00-\u9fff]", p):
+            merged[-1] += p
+        else:
+            merged.append(p)
+    return merged or [text]
 
 
 def _concat_wavs(paths, out_path, gap=0.12, sr=44100):

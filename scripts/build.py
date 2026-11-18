@@ -190,6 +190,14 @@ _SENT = re.compile(r"(?<=[。！？!?])")
 def split_subs(text, maxc=21, maxlines=2):
     """把一段旁白切成「一屏能看完」的字幕条：先按句，再按逗号，最后硬折行"""
     parts = [p.strip() for p in _SENT.split(text) if p.strip()]
+    # 同样别让「？！」切成只有标点的一屏
+    merged = []
+    for p in parts:
+        if merged and not re.search(r"[0-9A-Za-z\u4e00-\u9fff]", p):
+            merged[-1] += p
+        else:
+            merged.append(p)
+    parts = merged
     chunks = []
     for part in parts:
         if len(part) <= maxc * maxlines:
@@ -600,14 +608,15 @@ def main():
     # 对话只承担钩子 / 转场 / 情绪，知识点必须落到 show / card / quiz 这类知识画面。
     body = [s for s in segs if s.get("type") != "title"]
     talk_n = sum(1 for s in body if s.get("type") == "talk")
-    know_n = sum(1 for s in body if s.get("type") in ("show", "card", "quiz"))
+    # figure 是 show 的新形态（都必须给 figure），算知识画面
+    know_n = sum(1 for s in body if s.get("type") in ("show", "figure", "card", "quiz"))
     if body:
         tr = talk_n / len(body)
         if tr > 0.42:
             print(f"   ! 对话占比 {tr:.0%}（{talk_n}/{len(body)} 段）：知识才是主角，"
                   f"把 talk 压到 40% 以内，改用 show/card 讲原理")
         if know_n < max(3, len(body) * 0.3):
-            print(f"   ! 知识画面只有 {know_n} 段：每个知识点都要有 show 或 card，别只靠嘴说")
+            print(f"   ! 知识画面只有 {know_n} 段：每个知识点都要有 figure / card，别只靠嘴说")
 
     # 背景不能全片一张：同一个世界讲三个知识点，画面就死了。
     bgs = [s.get("bg") for s in segs if s.get("bg")]
