@@ -1048,7 +1048,7 @@ SCENES.title = {
         ? seg.titleLines.slice(0, 2)
         : [seg.title || ""];
       const longest = Math.max(1, ...lines.map(l => l.length));
-      const fs = Math.max(64, Math.min(112, Math.floor(920 / longest)));
+      const fs = Math.max(56, Math.min(84, Math.floor(760 / longest)));
       const head = el("g", {}, host);
       lines.forEach((ln, i) => {
         const t = txt(head, ln, M, 330 + i * fs * 1.16, fs, INK, 800, "start");
@@ -1183,7 +1183,7 @@ SCENES.cover43 = {
     // 标题：竖排区只有半屏宽，字号按最长行压
     const lines = (seg.titleLines && seg.titleLines.length) ? seg.titleLines.slice(0, 2) : [seg.title || ""];
     const longest = Math.max(1, ...lines.map(l => l.length));
-    const fs = Math.max(52, Math.min(96, Math.floor((W * 0.46) / longest)));
+    const fs = Math.max(48, Math.min(84, Math.floor((W * 0.44) / longest)));
     const head = el("g", {}, host);
     lines.forEach((ln, i) => {
       const t = txt(head, ln, M, M + 130 + i * fs * 1.16, fs, INK, 800, "start");

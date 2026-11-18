@@ -46,6 +46,9 @@ def main():
         print("  ! title 没写 cover，封面会没有主体", file=sys.stderr)
 
     seg = dict(title)
+    # 4:3 画面窄，站位/缩放往往要另一套；台本里可用 "c43": {...} 覆盖
+    if a.ratio == "4:3":
+        seg.update(title.get("c43") or {})
     seg["type"] = scene
     seg["dur"] = max(2.0, t + 1.5)
     # cover43 背景自带木纹，不需要本集 BG；title 仍要本集背景
