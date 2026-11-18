@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>角色规范 · 考考 &amp; 小熹</title>
+<style>
+  html,body{margin:0;padding:0;width:1920px;height:1080px;overflow:hidden;background:#FDF6E8}
+  svg{display:block;font-family:"Yuanti SC","PingFang SC","Hiragino Sans GB",sans-serif}
+</style>
+</head>
+<body>
+<svg id="root" width="1920" height="1080" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="gPaper" cx="46%" cy="36%" r="74%">
+      <stop offset="0%" stop-color="#FFFBEF"/><stop offset="100%" stop-color="#F5E8CE"/>
+    </radialGradient>
+    <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M60 0 H0 V60" fill="none" stroke="#D9C7A6" stroke-width="1" opacity="0.4"/>
+    </pattern>
+    <radialGradient id="gGold" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFF6C0"/><stop offset="40%" stop-color="#FFC93C" stop-opacity="0.62"/>
+      <stop offset="100%" stop-color="#FFB300" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#gPaper)"/>
+  <rect width="1920" height="1080" fill="url(#grid)"/>
+  <g id="sheet"></g>
+</svg>
+
+<script>
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent) {
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) if (attrs[k] != null) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+function txt(parent, s, x, y, size, fill, weight, anchor, ls) {
+  const t = el("text", { x, y, "font-size": size, fill, "font-weight": weight || 500,
+                         "text-anchor": anchor || "start", "letter-spacing": ls == null ? 1 : ls }, parent);
+  t.textContent = s;
+  return t;
+}
+</script>
+<script src="chars.js"></script>
+<script>
+const sheet = document.getElementById("sheet");
+const INK = "#33261C", MUTED = "#8A7458", ACCENT = "#2A5A8C", RULE = "#D3BE99";
+
+function place(parent, builder, x, feet, scale) {
+  const g = el("g", { transform: `translate(${x} ${feet}) scale(${scale})` }, parent);
+  builder(g);
+  return g;
+}
+
+// ---------- 页头 ----------
+txt(sheet, "角色规范 · 考考 & 小熹", 84, 92, 46, INK, 700, "start", 2);
+txt(sheet, "配色分家 · 小熹补齐四视角与六表情 · 精确矢量为主，Rough.js 仅作可选轮廓层（同一 seed，一个参数切换）",
+    86, 132, 21, MUTED, 400, "start", 0.5);
+el("path", { d: "M 84 166 H 1836", stroke: RULE, "stroke-width": 2 }, sheet);
+
+// ---------- 左：考考 ----------
+txt(sheet, "考考 · 新配色", 84, 208, 27, ACCENT, 700, "start", 2);
+txt(sheet, "主色改湖蓝，彻底退出橙红区 —— 和小熹的狐狸橙形成冷 / 暖对立", 84, 238, 18, MUTED, 400);
+el("path", { d: "M 940 190 V 1040", stroke: RULE, "stroke-width": 2, "stroke-dasharray": "8 10", opacity: 0.85 }, sheet);
+
+const KX = [175, 395, 615];
+[["idle", "常态"], ["silly", "大笑"], ["wow", "惊讶"]].forEach(([e, label], i) => {
+  place(sheet, g => buildKao(el, e, g), KX[i], 700, 0.55);
+  txt(sheet, label, KX[i], 742, 21, INK, 600, "middle");
+});
+// 第 4 格：细节放大（徽记 / 抽绳 / 口袋），比再摆一个一样的站姿有用
+const clip = el("clipPath", { id: "zoomClip" }, sheet.ownerDocument.querySelector("defs"));
+el("rect", { x: 745, y: 372, width: 190, height: 300, rx: 18 }, clip);
+el("rect", { x: 745, y: 372, width: 190, height: 300, rx: 18, fill: "none", stroke: RULE, "stroke-width": 2.5 }, sheet);
+const zoom = el("g", { "clip-path": "url(#zoomClip)" }, sheet);
+buildKao(el, "idle", el("g", { transform: "translate(794 946) scale(1.55)" }, zoom));
+txt(sheet, "细节：徽记 / 抽绳 / 口袋", 840, 700, 15, INK, 600, "middle");
+
+// 配色条
+txt(sheet, "考考色板", 84, 806, 19, INK, 700, "start", 2);
+const KP = [["#3E7CB8", "卫衣主色", 0.42], ["#2A5A8C", "帽子/暗部", 0.18], ["#67A6DC", "口袋/亮面", 0.14],
+            ["#D9CBAF", "裤子", 0.20], ["#F2B33D", "芥末黄点缀", 0.06]];
+KP.forEach(([hex, name, ratio], i) => {
+  const x = 84 + i * 172;
+  el("rect", { x, y: 826, width: 150, height: 72, rx: 14, fill: hex, stroke: INK, "stroke-width": 3 }, sheet);
+  txt(sheet, name, x, 922, 15, INK, 600);
+  txt(sheet, hex, x, 944, 14, "#6B5942", 500, "start", 0.5);
+  txt(sheet, `约 ${Math.round(ratio * 100)}% 面积`, x, 964, 13, MUTED, 400, "start", 0.3);
+});
+
+txt(sheet, "为什么要换：两人原本都是橙（考考 #F5813C / 小熹 #F2603C），同框时剪影糊成一块。", 84, 1012, 17, "#6B5942", 500);
+txt(sheet, "换蓝之后，任何背景上都是「冷色的人 + 暖色的狐」，远看也能一秒分开。暖色只留 6% 做点缀。", 84, 1040, 17, "#6B5942", 500);
+
+// ---------- 右：小熹 ----------
+txt(sheet, "小熹 · 简化版", 985, 208, 27, ACCENT, 700, "start", 2);
+txt(sheet, "一个剪影、三个色块、不叠半透明层：身 / 头 / 双耳 / 口鼻 / 尾 / 腿", 985, 238, 18, MUTED, 400);
+
+const VIEWS = [["front", "正面"], ["q34", "三分之二"], ["side", "侧面"], ["back", "背面"]];
+const VX = [1090, 1300, 1510, 1720];
+VIEWS.forEach(([v, label], i) => {
+  place(sheet, g => buildXi(el, { view: v, expr: "idle" }, g), VX[i], 486, 1.16);
+  txt(sheet, label, VX[i], 522, 20, INK, 600, "middle");
+  txt(sheet, `view: "${v}"`, VX[i], 544, 14, MUTED, 400, "middle", 0.4);
+});
+
+// 表情行
+const EXPRS = [["idle", "常态"], ["happy", "开心"], ["wow", "惊讶"], ["think", "歪头想"], ["giggle", "咯咯笑"], ["scope", "望远镜"]];
+const EX = [1040, 1195, 1350, 1505, 1660, 1815];
+EXPRS.forEach(([e, label], i) => {
+  place(sheet, g => buildXi(el, { view: "front", expr: e }, g), EX[i], 790, 0.94);
+  txt(sheet, label, EX[i], 822, 18, INK, 600, "middle");
+});
+txt(sheet, "表情只动三处：眼 / 嘴 / 耳。眼 4 态（圆点 / 弯弧 / 大眼 / 单眼眯）× 嘴 4 态 × 耳 2 态 = 32 种，够一季用。",
+    985, 866, 16, "#6B5942", 500, "start", 0.3);
+
+// 尾巴三态
+txt(sheet, "尾巴三态：still 静止 / wag 摇摆 / glow 亮起（金色尾尖 = 知识点亮）", 985, 902, 16, "#6B5942", 500, "start", 0.3);
+[["still", "静止"], ["wag", "摇摆"], ["glow", "亮起"]].forEach(([t, label], i) => {
+  place(sheet, g => buildXi(el, { view: "side", expr: "happy", tail: t }, g), 1060 + i * 150, 1030, 0.66);
+  txt(sheet, label, 1060 + i * 150, 1056, 15, MUTED, 500, "middle");
+});
+
+// 呼应小熹色板
+txt(sheet, "小熹色板", 1500, 945, 19, INK, 700, "start", 2);
+[["#F2603C", "主毛"], ["#C9421F", "暗部"], ["#FFF3E0", "胸/口鼻"], ["#FFC93C", "尾尖"]].forEach(([hex, name], i) => {
+  const x = 1500 + i * 88;
+  el("rect", { x, y: 958, width: 74, height: 40, rx: 10, fill: hex, stroke: INK, "stroke-width": 2.5 }, sheet);
+  txt(sheet, name, x, 1024, 13, "#6B5942", 500, "start", 0.2);
+});
+</script>
+</body>
+</html>

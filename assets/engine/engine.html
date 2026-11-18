@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; padding: 0; background: #101828; overflow: hidden; }
+  svg { display: block; }
+  text { font-family: "Yuanti SC", "PingFang SC", "Hiragino Sans GB", "Heiti SC", sans-serif; }
+</style>
+</head>
+<body>
+<svg id="stage" width="1920" height="1080" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gSkyDay" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8FD4F0"/><stop offset="55%" stop-color="#C6EBF7"/><stop offset="100%" stop-color="#F3F8D9"/>
+    </linearGradient>
+    <linearGradient id="gSkyNight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#13203B"/><stop offset="45%" stop-color="#1F3C66"/><stop offset="100%" stop-color="#35618C"/>
+    </linearGradient>
+    <linearGradient id="gUnder" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5FC6D8"/><stop offset="50%" stop-color="#2A87B8"/><stop offset="100%" stop-color="#0E3F68"/>
+    </linearGradient>
+    <linearGradient id="gForest" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2E6B3F"/><stop offset="60%" stop-color="#43834B"/><stop offset="100%" stop-color="#8CBF5A"/>
+    </linearGradient>
+    <linearGradient id="gSkyHigh" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3E7FC4"/><stop offset="60%" stop-color="#7FB9E4"/><stop offset="100%" stop-color="#D8EEF9"/>
+    </linearGradient>
+    <linearGradient id="gRoom" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F6E3C4"/><stop offset="100%" stop-color="#E3C79E"/>
+    </linearGradient>
+    <linearGradient id="gStorm" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#101724"/><stop offset="55%" stop-color="#26313F"/><stop offset="100%" stop-color="#41505F"/>
+    </linearGradient>
+    <linearGradient id="gMicro" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#131A2E"/><stop offset="100%" stop-color="#243A56"/>
+    </linearGradient>
+    <radialGradient id="gGold" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFF6C0"/><stop offset="40%" stop-color="#FFC93C" stop-opacity="0.62"/><stop offset="100%" stop-color="#FFB300" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="gSun" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFF9D6"/><stop offset="55%" stop-color="#FFE98A"/><stop offset="100%" stop-color="#FFD34D" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="gLamp" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFF4C8" stop-opacity="0.95"/><stop offset="60%" stop-color="#FFD97A" stop-opacity="0.35"/><stop offset="100%" stop-color="#FFC94D" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="gVig" cx="50%" cy="50%" r="72%">
+      <stop offset="0%" stop-color="#281C0C" stop-opacity="0"/><stop offset="24%" stop-color="#281C0C" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#281C0C" stop-opacity="0.30"/>
+    </radialGradient>
+    <pattern id="pGrass" width="200" height="140" patternUnits="userSpaceOnUse">
+      <g stroke="#7FBF3C" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.5">
+        <path d="M30 110 q8 -30 1 -46"/><path d="M42 110 q-9 -26 -3 -40"/>
+        <path d="M142 70 q8 -26 2 -40"/><path d="M154 70 q-8 -22 -2 -34"/>
+        <path d="M96 132 q7 -24 1 -38"/><path d="M108 132 q-8 -20 -2 -32"/>
+      </g>
+    </pattern>
+    <pattern id="pGrid" width="120" height="120" patternUnits="userSpaceOnUse">
+      <path d="M120 0 H0 V120" fill="none" stroke="#5E86B8" stroke-width="1.5" opacity="0.22"/>
+    </pattern>
+    <clipPath id="frameClip"><rect x="0" y="0" width="1920" height="1080"/></clipPath>
+
+    <!-- 角色高光：把 SourceAlpha 模糊后当高度场，用点光源打镜面反射，
+         色块边缘就有一圈高光，平涂立刻变成"塑料/搪胶"质感。
+         只作用于角色，不要套到整屏（整屏做这个会慢十倍）。 -->
+    <filter id="fCandy" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3.5" result="b"/>
+      <feSpecularLighting in="b" surfaceScale="3.5" specularConstant="0.85"
+                          specularExponent="16" lighting-color="#FFFDF5" result="s">
+        <fePointLight x="110" y="-240" z="300"/>
+      </feSpecularLighting>
+      <feComposite in="s" in2="SourceAlpha" operator="in" result="s2"/>
+      <feComposite in="SourceGraphic" in2="s2" operator="arithmetic"
+                   k1="0" k2="1" k3="0.62" k4="0"/>
+    </filter>
+
+    <!-- 接地阴影：用径向渐变假装高斯模糊。真上 feGaussianBlur 逐帧渲染会慢一个数量级 -->
+    <radialGradient id="gShadow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#2A1B10" stop-opacity="0.30"/>
+      <stop offset="0.55" stop-color="#2A1B10" stop-opacity="0.13"/>
+      <stop offset="1" stop-color="#2A1B10" stop-opacity="0"/>
+    </radialGradient>
+    <!-- 氛围光斑：中间亮、边缘化开 -->
+    <radialGradient id="gBokeh" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <!-- 卡片/圆盘投影：偏移一点，边缘柔 -->
+    <radialGradient id="gDrop" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#1A1208" stop-opacity="0.22"/>
+      <stop offset="0.7" stop-color="#1A1208" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#1A1208" stop-opacity="0"/>
+    </radialGradient>
+    <!-- 主光光晕：从左上打下来。有它画面立刻"有光源"，不再是均匀亮度 -->
+    <radialGradient id="gKeyLight" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#FFF8E4" stop-opacity="0.55"/>
+      <stop offset="0.45" stop-color="#FFF3D2" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#FFF3D2" stop-opacity="0"/>
+    </radialGradient>
+    <!-- 地面薄雾：远景和地面之间垫一层空气 -->
+    <linearGradient id="gHaze" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.34"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 色彩分级不在这里做：CSS filter 会让每帧重新合成整层，实测渲染慢近一倍。
+       改到 build.py 的 ffmpeg 编码阶段（eq=saturation:contrast），零渲染成本。 -->
+  <g id="world" clip-path="url(#frameClip)"></g>
+
+  <!-- 氛围层：光斑 + 浮尘。在镜头里、后期之前，所以会被暗角一起压住 -->
+  <g id="atmo" clip-path="url(#frameClip)"></g>
+
+  <!-- 电影感后期：强度按背景亮度自动分档 -->
+  <g id="post">
+    <rect id="postGrade" width="1920" height="1080" fill="#8A5A2A" opacity="0.05" style="mix-blend-mode:overlay"/>
+    <rect id="postVig" width="1920" height="1080" fill="url(#gVig)"/>
+  </g>
+
+  <!-- 字幕：两条，按句切分逐条上屏 -->
+  <g id="subLayer">
+    <!-- 两行时底对齐：基线 946 / 1006，第二行底部约 1022，离画面下沿还有 58px。
+         原来是 958 / 1026，第二行几乎贴着底边，看着像被切了一半 -->
+    <text id="sub0" x="960" y="946" font-size="48" font-weight="600" text-anchor="middle"
+          fill="#FFFFFF" stroke="#2A1B10" stroke-width="12" stroke-linejoin="round"
+          paint-order="stroke fill" opacity="0"> </text>
+    <text id="sub1" x="960" y="1006" font-size="48" font-weight="600" text-anchor="middle"
+          fill="#FFFFFF" stroke="#2A1B10" stroke-width="12" stroke-linejoin="round"
+          paint-order="stroke fill" opacity="0"> </text>
+  </g>
+</svg>
+
+<script src="rough.js"></script>
+<script src="chars.js"></script>
+<script>
+/* ==================================================================
+   考考&小熹 · 通用渲染引擎
+   一条时间线 = N 个片段（segment），每段是一个「场景类型 × 背景」的组合。
+   window.setTimeline(tl) 挂载，window.renderFrame(t) 逐帧求值。
+   所有随机量走确定性哈希，同一 t 永远同一画面。
+================================================================== */
+const NS = "http://www.w3.org/2000/svg";
+const W = 1920, H = 1080;
+
+/* ---------------- 手绘后端（Rough.js） ----------------
+   同一个 el() 出口，所有图元自动换成抖动版。
+   三条硬规则（踩过坑，见 references/pitfalls.md）：
+   · 填色层精确、描边层手绘 —— 一次调用同时给 fill+stroke 会露底
+   · 大形态必须把 roughness 压到 2 以内，否则整条曲线往里缩、露出内轮廓
+   · 渐变填充不参与手绘（嵌套 <g> 会改渐变坐标系）
+*/
+const ROUGH = new URLSearchParams(location.search).get("style") === "rough";
+const RQ = parseFloat(new URLSearchParams(location.search).get("rq") || "6");
+const ROUGH_SHAPES = new Set(["path", "rect", "circle", "ellipse", "polygon", "line"]);
+const ROUGH_MOVE = ["id", "transform", "transform-origin", "opacity", "display", "class", "style", "clip-path", "filter"];
+let RC = null, SEED = 0, ROUGHING = false;
+
+/* 手绘档的随机种子。默认写死，保证同一台机器、同一次构建、每一帧的抖动完全一致
+   —— 否则线条会"烧开水"。要换抖动形态改 ?seed=xxx 即可。 */
+const ROUGH_SEED = parseInt(new URLSearchParams(location.search).get("seed") || "20261116", 10);
+
+function shapeSpec(node) {
+  const tag = node.tagName.toLowerCase();
+  const n = (a, d = 0) => { const v = node.getAttribute(a); return v == null || v === "" ? d : parseFloat(v); };
+  if (tag === "path") { const d = node.getAttribute("d") || ""; return d.length > 8 ? { kind: "path", d } : null; }
+  if (tag === "rect") {
+    const x = n("x"), y = n("y"), w = n("width"), h = n("height");
+    if (!(w > 0 && h > 0)) return null;
+    const r = Math.min(n("rx") || n("ry"), w / 2, h / 2);
+    if (!(r > 0)) return { kind: "rect", x, y, w, h };
+    const pts = [];
+    for (const [cx, cy, a0] of [[x + w - r, y + r, -90], [x + w - r, y + h - r, 0],
+                               [x + r, y + h - r, 90], [x + r, y + r, 180]]) {
+      for (let i = 0; i <= 4; i++) {
+        const a = (a0 + i * 22.5) * Math.PI / 180;
+        pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+      }
+    }
+    return { kind: "polygon", pts, round: true };
+  }
+  if (tag === "circle") { const r = n("r"); return r > 0 ? { kind: "circle", x: n("cx"), y: n("cy"), w: r * 2, h: r * 2 } : null; }
+  if (tag === "ellipse") {
+    const rx = n("rx"), ry = n("ry");
+    return rx > 0 && ry > 0 ? { kind: "ellipse", x: n("cx"), y: n("cy"), w: rx * 2, h: ry * 2 } : null;
+  }
+  if (tag === "line") return { kind: "line", x1: n("x1"), y1: n("y1"), x2: n("x2"), y2: n("y2") };
+  if (tag === "polygon") {
+    const arr = (node.getAttribute("points") || "").trim().split(/[\s,]+/).map(Number);
+    if (arr.length < 6) return null;
+    const p = [];
+    for (let i = 0; i + 1 < arr.length; i += 2) p.push([arr[i], arr[i + 1]]);
+    return { kind: "polygon", pts: p };
+  }
+  return null;
+}
+
+function roughPrim(spec, o) {
+  switch (spec.kind) {
+    case "path": return RC.path(spec.d, o);
+    case "rect": return RC.rectangle(spec.x, spec.y, spec.w, spec.h, o);
+    case "circle": return RC.circle(spec.x, spec.y, spec.w, o);
+    case "ellipse": return RC.ellipse(spec.x, spec.y, spec.w, spec.h, o);
+    case "line": return RC.line(spec.x1, spec.y1, spec.x2, spec.y2, o);
+    case "polygon": return RC.polygon(spec.pts, o);
+  }
+  return null;
+}
+
+function roughNode(node) {
+  if (!RC) RC = rough.svg(document.getElementById("stage"));
+  const rawFill = node.getAttribute("fill") || "none";
+  const rawStroke = node.getAttribute("stroke") || "none";
+  if (rawFill.includes("url(") || rawStroke.includes("url(")) return null;
+  const spec = shapeSpec(node);
+  if (!spec) return null;
+  const fill = node.getAttribute("fill") || "none";
+  const stroke = node.getAttribute("stroke") || "none";
+  const sw = parseFloat(node.getAttribute("stroke-width") || "0");
+  const hasF = fill !== "none", hasS = stroke !== "none" && sw > 0;
+  const seed = 400 + (SEED++ * 37) % 997;
+  let span = 999, thin = 999;
+  try { const bb = node.getBBox(); span = Math.max(bb.width, bb.height); thin = Math.min(bb.width, bb.height); } catch (e) {}
+  const k = span < 90 ? 0.3 : span < 190 ? 0.6 : 1;
+  const kt = thin < 80 ? 0.25 : thin < 130 ? 0.45 : 1;
+
+  const g = document.createElementNS(NS, "g");
+  if (hasF) {
+    const bigFill = span > 300 && !hasS;
+    const fr = bigFill ? Math.min(RQ * 0.55, 6) : 0;
+    const fg = roughPrim(spec, { fill, fillStyle: "solid", stroke: "none", roughness: fr, bowing: fr * 0.9, seed });
+    if (fg) { for (const p of [...fg.children]) p.setAttribute("stroke", "none"); g.appendChild(fg); }
+  }
+  if (hasS) {
+    const isRound = !!spec.round;
+    const bigCap = span > 150 ? Math.min(2.2, 900 / span) : 99;
+    const rgn = Math.min(RQ * k * kt, sw * 0.62, span * 0.05, isRound ? 3 : 99, bigCap);
+    const dash = (node.getAttribute("stroke-dasharray") || "").trim().split(/[\s,]+/).filter(Boolean).map(Number);
+    const sg = roughPrim(spec, {
+      fill: "none", stroke, strokeWidth: sw, roughness: rgn, bowing: isRound ? 0.8 : rgn * 0.5, seed: seed + 1,
+      disableMultiStroke: true, preserveVertices: true, curveStepCount: 12,
+      ...(dash.length ? { strokeLineDash: dash } : {}),
+    });
+    if (sg) g.appendChild(sg);
+  }
+  return g.children.length ? g : null;
+}
+
+function wrapRough(node) {
+  const shape = roughNode(node);
+  if (!shape) return node;
+  const g = document.createElementNS(NS, "g");
+  for (const a of ROUGH_MOVE) if (node.hasAttribute(a)) g.setAttribute(a, node.getAttribute(a));
+  g.setAttribute("data-rough", "1");
+  g.appendChild(shape);
+  if (node.parentNode) node.parentNode.replaceChild(g, node);
+  return g;
+}
+
+/* ---------------- 图元工厂 ---------------- */
+function el(tag, attrs, parent) {
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) if (attrs[k] != null) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  const crispTree = parent && parent.closest && parent.closest("[data-crisp-tree]");
+  if (ROUGHING && ROUGH_SHAPES.has(tag) && !crispTree && !("data-crisp" in attrs)) return wrapRough(n);
+  return n;
+}
+
+function txt(parent, str, x, y, size, fill, weight, anchor, ls) {
+  const t = el("text", { x, y, "font-size": size, fill, "font-weight": weight || 600,
+                         "text-anchor": anchor || "middle", "letter-spacing": ls == null ? 2 : ls }, parent);
+  t.textContent = str;
+  return t;
+}
+
+/* 中文按字数折行（SVG text 不会自动换行） */
+function wrapTxt(parent, str, x, y, size, fill, weight, maxChars, lh, anchor) {
+  const lines = [];
+  const raw = String(str).split("\n");
+  for (const r of raw) {
+    if (r.length <= maxChars) { lines.push(r); continue; }
+    // 优先在标点处断
+    let buf = "";
+    for (const ch of r) {
+      buf += ch;
+      if (buf.length >= maxChars && "，。！？；：、".includes(ch)) { lines.push(buf); buf = ""; }
+      else if (buf.length >= maxChars + 1) { lines.push(buf); buf = ""; }
+    }
+    if (buf) lines.push(buf);
+  }
+  const out = [];
+  lines.forEach((s, i) => {
+    const t = txt(parent, s, x, y + i * lh, size, fill, weight, anchor || "middle", 2);
+    out.push(t);
+  });
+  return out;
+}
+
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, u) => a + (b - a) * u;
+const easeOut = u => 1 - Math.pow(1 - clamp(u, 0, 1), 3);
+// 电影感动效靠「快起慢收」：前 20% 走完 60% 距离，剩下慢慢贴住。
+// Expo 比 cubic 收得更狠，是 motion graphics 里最常用的那档。
+const easeOutExpo = u => { u = clamp(u, 0, 1); return u >= 1 ? 1 : 1 - Math.pow(2, -10 * u); };
+const easeOutQuint = u => 1 - Math.pow(1 - clamp(u, 0, 1), 5);
+const easeInOut = u => { u = clamp(u, 0, 1); return u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2; };
+const easeBack = u => { u = clamp(u, 0, 1); const c = 1.70158; return 1 + (c + 1) * Math.pow(u - 1, 3) + c * Math.pow(u - 1, 2); };
+function rnd(seed) { const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+
+/* ---------- 镜头：每段自带一点推拉 + 漂移 ----------
+   静止画面显「平」，加 3–5% 的缓慢缩放就能让观众感觉"镜头在呼吸"。
+   幅度必须小：超过 8% 会看出元素在飘。drift 是正弦平移，单位 px。 */
+// 注意 from/to 最小只能到 1.03：再小就跟 drift 的平移打架，画面边缘会露出画布外的空白
+const CAMERA = {
+  title: { from: 1.075, to: 1.030, drift: 9 },
+  talk:  { from: 1.030, to: 1.058, drift: 6 },
+  show:  { from: 1.030, to: 1.075, drift: 5 },
+  card:  { from: 1.055, to: 1.030, drift: 4 },
+  quiz:  { from: 1.030, to: 1.052, drift: 4 },
+  outro: { from: 1.060, to: 1.030, drift: 8 },
+};
+
+/* ---------- 氛围：光斑 + 浮尘 ----------
+   纯代码的「空气感」。用径向渐变当模糊，不上 feGaussianBlur。
+   浅色背景要压很低，否则像雾霾；深色背景可以放开，那是光。 */
+// 夜间给低值：meadow_night 背景自带萤火虫，再叠光斑就成泡泡了
+const ATMO_OP = { meadow_day: 0.08, sky: 0.06, forest: 0.14, underwater: 0.20,
+                  room: 0.10, room_storm: 0.18, storm: 0.24, meadow_night: 0.15, micro: 0.20 };
+// 主光：暗场景要更强（月光/闪电是唯一光源），室内最弱（有台灯就够了）
+const KEY_OP = { meadow_day: 0.55, sky: 0.50, forest: 0.75, underwater: 0.50,
+                 room: 0.40, room_storm: 0.48, storm: 0.75, meadow_night: 0.80, micro: 0.60 };
+// 薄雾：室内没有；深色场景压很低，否则一层灰
+const HAZE_OP = { meadow_day: 0.50, sky: 0.25, forest: 0.45, underwater: 0.55,
+                  room: 0, room_storm: 0, storm: 0.18, meadow_night: 0.22, micro: 0.20 };
+const ATMO = { bokeh: [], dust: [], node: null, bg: null };
+
+const INK = "#3A2A1C", CREAM = "#FDF4E2";
+
+/* ==================================================================
+   场景注册表 BG：每个函数在 root 里铺满一层，返回 update(t)
+   prof: 后期档位 {grade, vig} —— 亮场景降档，避免压暗后发脏
+
+   注意：这里内置的几个只是「兼容旧集的兜底」，不是背景库。
+   新的一集请在该集 scenery.js 里用 SCENE_KIT.scene(name, fn) 按话题现画。
+================================================================== */
+const BG = {};
+
+/* ---------------------------------------------------------------
+   前景剪影：压在画面最前面，制造"镜头在草丛里"的纵深。
+   规则：
+   - 颜色要比中景暗 2–3 档，才会被读成"离镜头更近"；
+   - 只放画面两侧 + 底部矮的一圈，中间留空给角色（角色脚底 950–1020）；
+   - 尺寸大、细节少 —— 近景本来就该虚。
+   --------------------------------------------------------------- */
+function nearSil(g, kind, color, op) {
+  const grp = el("g", { opacity: op == null ? 1 : op }, g);
+  // 叶尖留一点宽度（收成一个窄边而不是一个点），否则整丛看起来像仙人掌
+  const blade = (x, h, lean, w, c) => {
+    const tipX = x + lean, tipY = 1090 - h, tw = Math.max(2.5, w * 0.14);
+    return el("path", {
+      d: `M ${x} 1090 ` +
+         `C ${x - w * 0.45} ${1090 - h * 0.38} ${tipX - w * 0.5} ${1090 - h * 0.78} ${tipX - tw} ${tipY} ` +
+         `L ${tipX + tw} ${tipY} ` +
+         `C ${tipX + w * 0.45} ${1090 - h * 0.74} ${x + w * 1.15} ${1090 - h * 0.34} ${x + w} 1090 Z`,
+      fill: c || color,
+    }, grp);
+  };
+
+  if (kind === "grass") {
+    // 两侧高草：22 片、更宽，才像"一丛草"而不是几根尖刺
+    for (let i = 0; i < 22; i++) {
+      const x = -50 + rnd(i * 3.7) * 400;
+      blade(x, 140 + rnd(i * 7.1) * 250, (rnd(i * 2.3) - 0.5) * 140, 22 + rnd(i * 5.9) * 34);
+    }
+    for (let i = 0; i < 22; i++) {
+      const x = 1540 + rnd(i * 4.1) * 430;
+      blade(x, 140 + rnd(i * 6.7) * 250, (rnd(i * 2.9) - 0.5) * 140, 22 + rnd(i * 5.3) * 34);
+    }
+    // 底部矮草：高度压在 70 以内，不挡角色脚
+    for (let i = 0; i < 14; i++) {
+      const x = 240 + rnd(i * 5.1) * 1440;
+      blade(x, 34 + rnd(i * 3.3) * 36, (rnd(i * 8.7) - 0.5) * 46, 10 + rnd(i * 2.1) * 12);
+    }
+    // 两块石头压角
+    [[128, 1030, 96, 54], [1792, 1046, 118, 62]].forEach(([cx, cy, rx, ry], i) => {
+      el("ellipse", { cx, cy, rx, ry, fill: color, opacity: 0.95 }, grp);
+      el("ellipse", { cx: cx - rx * 0.28, cy: cy - ry * 0.3, rx: rx * 0.45, ry: ry * 0.4,
+                      fill: "#FFFFFF", opacity: 0.10 + i * 0.02 }, grp);
+    });
+  } else if (kind === "branch") {
+    // 上角伸进来的树枝
+    el("path", { d: `M -60 -40 C 120 40 210 150 250 300 C 200 250 140 200 60 170 ` +
+                     `C 10 150 -30 120 -60 140 Z`, fill: color }, grp);
+    for (let i = 0; i < 12; i++) {
+      const x = 20 + rnd(i * 4.3) * 240, y = 60 + rnd(i * 6.1) * 260;
+      const s = 0.6 + rnd(i * 2.7) * 0.8;
+      el("ellipse", { cx: x, cy: y, rx: 34 * s, ry: 15 * s,
+                      transform: `rotate(${-40 + rnd(i * 3.9) * 60} ${x} ${y})`,
+                      fill: color }, grp);
+    }
+  } else if (kind === "kelp") {
+    for (let i = 0; i < 12; i++) {
+      const x = (i < 6 ? -30 + rnd(i * 3.1) * 340 : 1600 + rnd(i * 4.7) * 380);
+      const h = 220 + rnd(i * 5.3) * 300, w = 22 + rnd(i * 2.9) * 26;
+      el("path", {
+        d: `M ${x} 1090 C ${x - w} ${1090 - h * 0.6} ${x + w * 0.6} ${1090 - h * 0.85} ${x + w * 0.2} ${1090 - h} ` +
+           `C ${x + w * 1.6} ${1090 - h * 0.7} ${x + w * 1.1} ${1090 - h * 0.35} ${x + w} 1090 Z`,
+        fill: color }, grp);
+    }
+  } else if (kind === "coral") {
+    for (let i = 0; i < 9; i++) {
+      const x = rnd(i * 3.3) * W;
+      const h = 70 + rnd(i * 5.7) * 150;
+      el("path", { d: `M ${x} 1090 q -10 ${-h * 0.5} 6 ${-h} q 16 ${h * 0.5} 6 ${h} Z`,
+                   fill: color }, grp);
+    }
+  }
+  return grp;
+}
+
+BG.meadow_day = (root) => {
+  el("rect", { width: W, height: H, fill: "url(#gSkyDay)" }, root);
+  const sun = el("g", { transform: "translate(1600 200)" }, root);
+  el("circle", { cx: 0, cy: 0, r: 240, fill: "url(#gSun)" }, sun);
+  el("circle", { cx: 0, cy: 0, r: 74, fill: "#FFF3B8" }, sun);
+
+  const clouds = el("g", {}, root);
+  const cl = [[420, 210, 1.0], [980, 150, 0.72], [1420, 300, 0.86], [180, 380, 0.6]];
+  cl.forEach(([x, y, s], i) => {
+    const g = el("g", { transform: `translate(${x} ${y}) scale(${s})` }, clouds);
+    [[0, 0, 74], [78, 12, 56], [-76, 14, 50], [30, -34, 54], [-30, -26, 46]].forEach(([cx, cy, r]) => {
+      el("circle", { cx, cy, r, fill: "#FFFFFF", opacity: 0.9 }, g);
+    });
+  });
+
+  // 远山：比中景淡两档、位置更高，靠大气透视把"远方"推出去
+  el("path", { d: "M0 655 Q 300 565 640 625 Q 1010 695 1310 605 Q 1660 515 1920 595 V1080 H0 Z", fill: "#E3F2D3" }, root);
+  el("path", { d: "M0 700 Q 320 590 700 660 Q 1080 730 1400 640 Q 1700 560 1920 640 V1080 H0 Z", fill: "#CDEBA4" }, root);
+  el("path", { d: "M0 800 Q 400 730 820 790 Q 1240 850 1560 770 Q 1780 720 1920 760 V1080 H0 Z", fill: "#ABE664" }, root);
+  el("path", { d: "M0 900 Q 480 850 960 890 Q 1440 930 1920 880 V1080 H0 Z", fill: "#8FD44B" }, root);
+  el("rect", { x: 0, y: 880, width: W, height: 200, fill: "url(#pGrass)" }, root);
+  nearSil(root, "grass", "#4B8620", 0.96);
+  return (t) => { clouds.setAttribute("transform", `translate(${(t * 6) % 240} 0)`); };
+};
+BG.meadow_day.light = { x: 1600, y: 175 };
+BG.meadow_day.prof = { grade: 0.02, vig: 0.06 };
+
+BG.meadow_night = (root) => {
+  el("rect", { width: W, height: H, fill: "url(#gSkyNight)" }, root);
+  const stars = el("g", {}, root);
+  for (let i = 0; i < 110; i++) {
+    el("circle", { cx: rnd(i * 3.1) * W, cy: rnd(i * 7.7) * 620, r: 1.6 + rnd(i * 2.3) * 2.6,
+                   fill: "#FFFFFF", opacity: 0.5 }, stars);
+  }
+  const moon = el("g", { transform: "translate(1560 190)" }, root);
+  el("circle", { cx: 0, cy: 0, r: 210, fill: "url(#gSun)", opacity: 0.5 }, moon);
+  el("circle", { cx: 0, cy: 0, r: 78, fill: "#FFF6D8" }, moon);
+  el("circle", { cx: -22, cy: -16, r: 15, fill: "#F1E3BB", opacity: 0.8 }, moon);
+  el("circle", { cx: 20, cy: 24, r: 11, fill: "#F1E3BB", opacity: 0.7 }, moon);
+
+  // 夜间的大气透视是「向天空色靠拢」，不是变浅：远山更蓝更亮
+  el("path", { d: "M0 715 Q 340 620 720 680 Q 1120 745 1460 655 Q 1730 595 1920 655 V1080 H0 Z", fill: "#2E5686" }, root);
+  el("path", { d: "M0 760 Q 380 660 780 720 Q 1180 780 1520 690 Q 1760 630 1920 690 V1080 H0 Z", fill: "#24486F" }, root);
+  el("path", { d: "M0 850 Q 460 790 960 830 Q 1460 870 1920 820 V1080 H0 Z", fill: "#1C3A5C" }, root);
+  nearSil(root, "grass", "#122A45", 0.9);
+  const flies = el("g", {}, root);
+  const F = [];
+  for (let i = 0; i < 16; i++) {
+    const g = el("g", {}, flies);
+    el("circle", { cx: 0, cy: 0, r: 44, fill: "url(#gSun)", opacity: 0.55 }, g);
+    el("circle", { cx: 0, cy: 0, r: 4.5, fill: "#FFF6B0" }, g);
+    F.push({ g, x: 120 + rnd(i * 5.3) * 1700, y: 420 + rnd(i * 9.1) * 480, p: rnd(i * 1.7) * 6.28 });
+  }
+  return (t) => {
+    stars.setAttribute("opacity", 0.75 + 0.25 * Math.sin(t * 1.3));
+    F.forEach(f => {
+      const dx = Math.sin(t * 0.5 + f.p) * 60, dy = Math.cos(t * 0.42 + f.p * 1.3) * 34;
+      f.g.setAttribute("transform", `translate(${f.x + dx} ${f.y + dy})`);
+      f.g.setAttribute("opacity", 0.45 + 0.55 * Math.abs(Math.sin(t * 1.6 + f.p)));
+    });
+  };
+};
+BG.meadow_night.light = { x: 1560, y: 165 };
+BG.meadow_night.prof = { grade: 0.07, vig: 0.28 };
+
+BG.forest = (root) => {
+  el("rect", { width: W, height: H, fill: "url(#gForest)" }, root);
+  const shafts = el("g", { opacity: 0.16 }, root);
+  [[260, 1], [760, 0.8], [1280, 1.1], [1700, 0.7]].forEach(([x, s]) => {
+    el("path", { d: `M ${x} 0 L ${x + 90 * s} 0 L ${x + 260 * s} 1080 L ${x - 40 * s} 1080 Z`, fill: "#FFF7C8" }, shafts);
+  });
+  // 远树：更细、更淡、更贴近雾色，把林子推出层次
+  const farTrees = el("g", {}, root);
+  for (let i = 0; i < 11; i++) {
+    const x = 10 + i * 180 + rnd(i * 3.1) * 80, w = 34 + rnd(i * 4.7) * 26;
+    el("rect", { x, y: 200, width: w, height: 760, rx: w / 2,
+                 fill: "#6E8F5C", opacity: 0.34 }, farTrees);
+  }
+  const trees = el("g", {}, root);
+  [[120, 150, 0.9], [520, 110, 0.75], [900, 170, 1.0], [1350, 130, 0.8], [1760, 160, 0.95]].forEach(([x, w, s], i) => {
+    const g = el("g", {}, trees);
+    el("rect", { x: x, y: 120, width: w, height: 960, rx: w / 2, fill: i % 2 ? "#3B5B33" : "#2F4C2A", opacity: 0.55 }, g);
+    el("ellipse", { cx: x + w / 2, cy: 120, rx: w * 1.6 * s, ry: w * 0.9 * s, fill: "#4E7A3E", opacity: 0.45 }, g);
+  });
+  el("path", { d: "M0 930 Q 480 890 960 920 Q 1440 950 1920 910 V1080 H0 Z", fill: "#6FA349" }, root);
+  el("rect", { x: 0, y: 950, width: W, height: 130, fill: "url(#pGrass)", opacity: 0.55 }, root);
+  nearSil(root, "branch", "#1D3019", 0.94);
+  return (t) => { shafts.setAttribute("opacity", 0.12 + 0.05 * Math.sin(t * 0.8)); };
+};
+BG.forest.light = { x: 300, y: 60 };
+BG.forest.prof = { grade: 0.05, vig: 0.2 };
+
+BG.underwater = (root) => {
+  el("rect", { width: W, height: H, fill: "url(#gUnder)" }, root);
+  const rays = el("g", { opacity: 0.18 }, root);
+  [300, 760, 1200, 1620].forEach((x, i) => {
+    el("path", { d: `M ${x} 0 L ${x + 160} 0 L ${x + 380} 1080 L ${x + 60} 1080 Z`, fill: "#DFF7FF" }, rays);
+  });
+  // 远水草：淡、细、密，铺出"后面的水草林"
+  const farWeeds = el("g", { opacity: 0.4 }, root);
+  for (let i = 0; i < 16; i++) {
+    const x = rnd(i * 2.7) * W, h = 110 + rnd(i * 4.5) * 190;
+    el("path", { d: `M ${x} 1010 q ${18 + rnd(i) * 24} ${-h * 0.5} ${-12 + rnd(i * 3) * 24} ${-h}`,
+                 fill: "none", stroke: "#6FB894", "stroke-width": 8, "stroke-linecap": "round" }, farWeeds);
+  }
+  el("path", { d: "M0 960 Q 300 910 620 950 Q 980 995 1300 945 Q 1650 900 1920 950 V1080 H0 Z", fill: "#E4D6A8" }, root);
+  const weeds = el("g", {}, root);
+  for (let i = 0; i < 9; i++) {
+    const x = 80 + i * 220 + rnd(i * 3.7) * 80, h = 200 + rnd(i * 5.9) * 260;
+    el("path", { d: `M ${x} 1010 q ${30 + rnd(i) * 40} ${-h * 0.5} ${-20 + rnd(i * 2) * 40} ${-h}`,
+                 fill: "none", stroke: i % 2 ? "#3E9B6B" : "#2F7F58", "stroke-width": 14, "stroke-linecap": "round" }, weeds);
+  }
+  nearSil(root, "kelp", "#1C5E42", 0.88);
+  const bubbles = el("g", {}, root);
+  const B = [];
+  for (let i = 0; i < 26; i++) {
+    const c = el("circle", { cx: 0, cy: 0, r: 4 + rnd(i * 2.9) * 9, fill: "none",
+                             stroke: "#DCF4FF", "stroke-width": 2.5, opacity: 0.5 }, bubbles);
+    B.push({ c, x: rnd(i * 4.1) * W, sp: 40 + rnd(i * 6.3) * 70, ph: rnd(i * 8.8) * 900 });
+  }
+  return (t) => {
+    rays.setAttribute("opacity", 0.14 + 0.06 * Math.sin(t * 0.6));
+    B.forEach(b => {
+      const y = 1080 - ((t * b.sp + b.ph) % 1180);
+      b.c.setAttribute("cx", b.x + Math.sin(t * 1.2 + b.ph) * 18);
+      b.c.setAttribute("cy", y);
+    });
+    weeds.setAttribute("transform", `rotate(${Math.sin(t * 0.9) * 1.2} 960 1080)`);
+  };
+};
+BG.underwater.light = { x: 900, y: -80 };
+BG.underwater.prof = { grade: 0.04, vig: 0.22 };
+
+BG.sky = (root) => {
+  el("rect", { width: W, height: H, fill: "url(#gSkyHigh)" }, root);
+  const clouds = el("g", {}, root);
+  for (let i = 0; i < 7; i++) {
+    const y = 640 + rnd(i * 3.3) * 320, x = rnd(i * 7.1) * W, s = 0.8 + rnd(i * 2.2) * 1.4;
+    const g = el("g", { opacity: 0.85 }, clouds);
+    [[0, 0, 90], [70, 16, 64], [-70, 20, 56], [26, -30, 62]].forEach(([cx, cy, r]) => {
+      el("circle", { cx, cy, r: r * s, fill: "#FFFFFF" }, g);
+    });
+    g.dataset.x = x; g.dataset.y = y; g.dataset.s = s;
+  }
+  const birds = el("g", { opacity: 0.45 }, root);
+  [[300, 240], [360, 280], [420, 232]].forEach(([x, y]) => {
+    el("path", { d: `M ${x} ${y} q 12 -12 24 0 q 12 -12 24 0`, fill: "none", stroke: CREAM, "stroke-width": 4 }, birds);
+  });
+  // 近景云：只露上半、大而软，制造"穿过云层"的纵深
+  const nearCloud = el("g", { opacity: 0.5 }, root);
+  [[120, 1140, 1.7], [1480, 1180, 2.0]].forEach(([cx, cy, s]) => {
+    [[0, 0, 118], [96, 30, 84], [-96, 34, 76], [40, -48, 80]].forEach(([dx, dy, r]) => {
+      el("circle", { cx: cx + dx * s, cy: cy + dy * s, r: r * s * 0.9, fill: "#FFFFFF" }, nearCloud);
+    });
+  });
+  return (t) => {
+    [...clouds.children].forEach((g, i) => {
+      const x = (+g.dataset.x + t * (10 + i * 3)) % (W + 400) - 200;
+      g.setAttribute("transform", `translate(${x} ${+g.dataset.y}) scale(${+g.dataset.s})`);
+    });
+  };
+};
+BG.sky.light = { x: 960, y: 40 };
+BG.sky.prof = { grade: 0.02, vig: 0.08 };
+
+function makeRoom(storm) {
+  return (root) => {
+    el("rect", { width: W, height: H, fill: "url(#gRoom)" }, root);
+
+    // 窗：窗外的天气跟着剧情走。雷雨集里窗外还是大晴天，是最容易穿帮的一处
+    const win = el("g", {}, root);
+    el("rect", { x: 1180, y: 150, width: 560, height: 470, rx: 18,
+                 fill: storm ? "url(#gStorm)" : "#BFE4F4", stroke: "#8A6A44", "stroke-width": 14 }, win);
+    if (storm) {
+      // 窗外远景：暗色云 + 雨丝
+      for (let i = 0; i < 22; i++) {
+        const x = 1200 + rnd(i * 3.3) * 520, y = 170 + rnd(i * 7.1) * 430;
+        el("line", { x1: x, y1: y, x2: x - 7, y2: y + 34, stroke: "#9FB4C8", "stroke-width": 2.5, opacity: 0.5 }, win);
+      }
+      [1320, 1540].forEach((x, i) => {
+        [[0, 0, 70], [56, 14, 48], [-56, 16, 44]].forEach(([dx, dy, r]) => {
+          el("circle", { cx: x + dx, cy: 330 + dy, r, fill: i ? "#5A6B82" : "#48586E", opacity: 0.85 }, win);
+        });
+      });
+    } else {
+      el("circle", { cx: 1640, cy: 250, r: 34, fill: "#FFF0B0" }, win);
+    }
+    el("path", { d: "M1460 150 V620 M1180 380 H1740", stroke: "#8A6A44", "stroke-width": 12 }, win);
+
+    // 地板
+    el("rect", { x: 0, y: 880, width: W, height: 200, fill: "#C08F5E" }, root);
+    el("path", { d: "M0 880 H1920", stroke: "#9C7248", "stroke-width": 10 }, root);
+
+    // 书桌：桌面落在 756，桌腿一直落到地面 884（第一版是块悬空的圆角矩形，像挂画）
+    el("rect", { x: 210, y: 756, width: 780, height: 22, rx: 8, fill: "#E8C79A", stroke: "#8A6A44", "stroke-width": 8 }, root);
+    [[250, 30], [920, 30]].forEach(([x, w]) => {
+      el("rect", { x, y: 778, width: w, height: 106, fill: "#D9B487", stroke: "#8A6A44", "stroke-width": 8 }, root);
+    });
+
+    // 台灯：底座压在桌面上，灯罩在灯杆顶
+    const lamp = el("g", {}, root);
+    el("circle", { cx: 300, cy: 636, r: 190, fill: "url(#gLamp)", opacity: 0.55 }, lamp);
+    el("rect", { x: 288, y: 640, width: 24, height: 118, rx: 10, fill: "#8A6A44" }, lamp);
+    el("ellipse", { cx: 300, cy: 758, rx: 46, ry: 12, fill: "#8A6A44" }, lamp);
+    el("path", { d: "M 232 646 q 68 -62 136 0 z", fill: "#F2B45C", stroke: "#8A6A44", "stroke-width": 8 }, lamp);
+    return (t) => { lamp.setAttribute("opacity", 0.85 + 0.15 * Math.sin(t * 2.2)); };
+  };
+}
+BG.room = makeRoom(false);
+BG.room.light = { x: 1420, y: 300 };
+BG.room.prof = { grade: 0.03, vig: 0.1 };
+BG.room_storm = makeRoom(true);
+BG.room_storm.light = { x: 1420, y: 300 };
+BG.room_storm.prof = { grade: 0.05, vig: 0.22 };
+
+BG.micro = (root) => {
+  el("rect", { width: W, height: H, fill: "url(#gMicro)" }, root);
+  el("rect", { width: W, height: H, fill: "url(#pGrid)" }, root);
+  const cells = el("g", {}, root);
+  const C = [];
+  for (let i = 0; i < 12; i++) {
+    const g = el("g", {}, cells);
+    const r = 34 + rnd(i * 4.4) * 60;
+    el("circle", { cx: 0, cy: 0, r, fill: "#2E6F8E", opacity: 0.55 }, g);
+    el("circle", { cx: 0, cy: 0, r, fill: "none", stroke: "#7FD6F0", "stroke-width": 3, opacity: 0.7 }, g);
+    el("circle", { cx: r * 0.2, cy: -r * 0.15, r: r * 0.34, fill: "#8FE3C8", opacity: 0.55 }, g);
+    C.push({ g, x: rnd(i * 6.1) * W, y: rnd(i * 8.3) * H, r, p: rnd(i * 2.7) * 6.28, sp: 8 + rnd(i) * 14 });
+  }
+  // 前景细胞：大、淡、只压两侧，制造"贴着镜头"的浅景深
+  for (let i = 0; i < 5; i++) {
+    const cx0 = (i < 3 ? -140 + rnd(i * 3.3) * 380 : 1640 + rnd(i * 4.9) * 400);
+    const cy0 = 220 + rnd(i * 6.1) * 700;
+    el("circle", { cx: cx0, cy: cy0, r: 170 + rnd(i * 2.7) * 170,
+                   fill: "#4FBF9A", opacity: 0.15 }, root);
+  }
+  return (t) => {
+    C.forEach(c => {
+      c.g.setAttribute("transform",
+        `translate(${c.x + Math.sin(t * 0.3 + c.p) * 40} ${c.y + Math.cos(t * 0.24 + c.p) * 30})`);
+    });
+  };
+};
+BG.micro.light = { x: 960, y: 80 };
+BG.micro.prof = { grade: 0.06, vig: 0.3 };
+
+/* ==================================================================
+   符号库：show / card 场景里的抽象图形（全部图元拼，无 emoji）
+================================================================== */
+
+BG.storm = (root) => {
+  el("rect", { width: W, height: H, fill: "url(#gStorm)" }, root);
+  // 云：三层不同明度的团块，越上层越慢
+  // 云必须比天空亮，否则在深色天上等于没画（第一版就栽在这）
+  const layers = [];
+  [[0.85, "#3F4E66", 118, 60, 34], [0.72, "#54647C", 96, 170, 52], [0.55, "#6B7D94", 78, 268, 70]]
+    .forEach(([op, col, r, y, step], li) => {
+      const g = el("g", { opacity: op }, root);
+      for (let i = 0; i < 6; i++) {
+        const x = -100 + i * (step * 7) + (li % 2) * 180;
+        const yy = y + (i % 3) * 26 - 20;
+        const sc = 0.8 + (i % 3) * 0.22;
+        [[0, 0, r], [r * 0.86, r * 0.22, r * 0.72], [-r * 0.86, r * 0.26, r * 0.66], [r * 0.06, -r * 0.42, r * 0.7]]
+          .forEach(([dx, dy, rr]) => {
+            el("circle", { cx: x + dx * sc, cy: yy + dy * sc, r: rr * sc, fill: col }, g);
+          });
+      }
+      layers.push({ g, sp: 5 + li * 4 });
+    });
+
+  // 雨：斜向细线，靠位移做下落
+  const rain = el("g", { opacity: 0.34 }, root);
+  const R = [];
+  for (let i = 0; i < 130; i++) {
+    const ln = el("line", { x1: 0, y1: 0, x2: -9, y2: 46, stroke: "#BFD4E8", "stroke-width": 2.2 }, rain);
+    R.push({ ln, x: rnd(i * 3.1) * (W + 400), y: rnd(i * 7.7) * H, sp: 620 + rnd(i * 2.3) * 420 });
+  }
+
+  el("path", { d: "M0 950 Q 480 900 960 935 Q 1440 970 1920 925 V1080 H0 Z", fill: "#1A2230" }, root);
+  // 前景草压在闪光层之下，这样闪电时前景也会被一起照亮
+  nearSil(root, "grass", "#0D131F", 0.95);
+
+  const flashLayer = el("rect", { width: W, height: H, fill: "#EAF4FF", opacity: 0 }, root);
+  const boltG = el("g", { opacity: 0 }, root);
+  el("path", { d: "M 1230 120 L 1196 300 L 1252 288 L 1180 520 L 1300 268 L 1240 280 L 1288 120 Z",
+               fill: "#FFF7C8", stroke: "#FFE98A", "stroke-width": 6, "stroke-linejoin": "round" }, boltG);
+
+  return (t) => {
+    layers.forEach(({ g, sp }) => g.setAttribute("transform", `translate(${-(t * sp) % 320} 0)`));
+    R.forEach(r => {
+      const y = (r.y + t * r.sp) % (H + 120) - 60;
+      r.ln.setAttribute("x1", r.x);
+      r.ln.setAttribute("y1", y);
+      r.ln.setAttribute("x2", r.x - 9);
+      r.ln.setAttribute("y2", y + 46);
+    });
+    // 闪电：每 4.5 秒一次，双闪（闪-暗-再闪），全部由 t 决定，同一帧永远同一画面
+    const ph = t % 4.5;
+    const f = ph < 0.07 ? 1 : ph < 0.13 ? 0.15 : ph < 0.22 ? 0.7 : 0;
+    flashLayer.setAttribute("opacity", f * 0.42);
+    boltG.setAttribute("opacity", f);
+  };
+};
+BG.storm.light = { x: 900, y: 60 };
+BG.storm.prof = { grade: 0.05, vig: 0.26 };
+
+const EMBLEM = {
+  /* 俯视蚊子：头朝上、翅膀外张、六条腿撑开。用褐色系，避开考考的蓝和小熹的橙 */
+  mosquito: (g, s) => {
+    const u = s / 100;
+    [-1, 1].forEach(sd => {
+      [0, 1, 2].forEach(i => {
+        const y0 = (-6 + i * 26) * u, x0 = 18 * sd * u;
+        el("path", { d: `M ${x0} ${y0} q ${22 * sd * u} ${8 * u} ${30 * sd * u} ${(26 + i * 10) * u}`,
+                     fill: "none", stroke: INK, "stroke-width": 6, "stroke-linecap": "round" }, g);
+      });
+    });
+    // 翅膀要够实：太淡会只剩一圈描边，看着像两只耳朵
+    [-1, 1].forEach(sd => {
+      el("ellipse", { cx: 22 * sd * u, cy: -30 * u, rx: 40 * u, ry: 15 * u,
+                      transform: `rotate(${sd * 32} ${22 * sd * u} ${-30 * u})`,
+                      fill: "#BBD8EC", stroke: INK, "stroke-width": 5 }, g);
+      el("path", { d: `M ${4 * sd * u} ${-34 * u} q ${16 * sd * u} ${2 * u} ${32 * sd * u} ${-2 * u}`,
+                   fill: "none", stroke: "#78A6C4", "stroke-width": 3, opacity: 0.75 }, g);
+    });
+    el("ellipse", { cx: 0, cy: 32 * u, rx: 22 * u, ry: 42 * u, fill: "#6B4636", stroke: INK, "stroke-width": 8 }, g);
+    // 腹部节纹：一条横线就够暗示分节
+    el("path", { d: `M ${-16 * u} ${34 * u} q ${16 * u} ${6 * u} ${32 * u} 0`, fill: "none",
+                 stroke: "#4A2E22", "stroke-width": 4, opacity: 0.6 }, g);
+    el("ellipse", { cx: 0, cy: -18 * u, rx: 21 * u, ry: 23 * u, fill: "#9E6E52", stroke: INK, "stroke-width": 8 }, g);
+    el("circle", { cx: 0, cy: -50 * u, r: 15 * u, fill: "#7A5240", stroke: INK, "stroke-width": 7 }, g);
+    // 复眼占满头两侧才像蚊子；小圆点看着像两只眼睛的玩偶
+    [-1, 1].forEach(sd => el("ellipse", { cx: 8 * sd * u, cy: -50 * u, rx: 8 * u, ry: 9 * u, fill: "#C8452E" }, g));
+    el("path", { d: `M 0 ${-64 * u} v ${-20 * u}`, fill: "none", stroke: INK,
+                 "stroke-width": 6, "stroke-linecap": "round" }, g);
+  },
+  /* 通用圆滚角色：一个圆 + 简笔脸 + 小短脚。
+     刻意做得中性（淡蓝、无花纹、无特定五官比例），只用来示意「圆滚滚的小家伙」，
+     不去复刻任何现成 IP 的角色造型。 */
+  ball: (g, s) => {
+    const r = s * 0.68;
+    el("ellipse", { cx: 0, cy: r * 0.94, rx: r * 0.72, ry: r * 0.16, fill: INK, opacity: 0.16 }, g);
+    // 两只小短手：有手才像「小人」，只有圆和脸会读成一颗蛋
+    [-1, 1].forEach(sd => {
+      el("ellipse", { cx: sd * r * 0.92, cy: r * 0.18, rx: r * 0.13, ry: r * 0.2,
+                      transform: `rotate(${sd * 24} ${sd * r * 0.92} ${r * 0.18})`,
+                      fill: "#9EC5E8", stroke: INK, "stroke-width": 5 }, g);
+    });
+    el("circle", { cx: 0, cy: 0, r, fill: "#9EC5E8", stroke: INK, "stroke-width": 8 }, g);
+    el("ellipse", { cx: -r * 0.3, cy: -r * 0.36, rx: r * 0.2, ry: r * 0.12,
+                    fill: "#FFFFFF", opacity: 0.55 }, g);
+    [-1, 1].forEach(sd => {
+      el("ellipse", { cx: sd * r * 0.26, cy: -r * 0.06, rx: r * 0.07, ry: r * 0.1, fill: INK }, g);
+      el("circle", { cx: sd * r * 0.26 - r * 0.02, cy: -r * 0.1, r: r * 0.03, fill: "#FFFFFF" }, g);
+      el("ellipse", { cx: sd * r * 0.3, cy: r * 0.62, rx: r * 0.16, ry: r * 0.09,
+                      fill: "#7FAED2", stroke: INK, "stroke-width": 5 }, g);
+    });
+    el("path", { d: `M ${-r * 0.16} ${r * 0.24} q ${r * 0.16} ${r * 0.14} ${r * 0.32} 0`,
+                 fill: "none", stroke: INK, "stroke-width": 6, "stroke-linecap": "round" }, g);
+  },
+  /* 蝴蝶的一生四态：卵 → 毛毛虫 → 蛹 → 成虫。
+     配色避开考考的蓝和小熹的橙，用米白 / 草绿 / 黄绿 / 藕紫。 */
+  egg: (g, s) => {
+    const r = s * 0.5;
+    // 填充不能太浅：奶油色卡片上，米白的卵会只剩一圈描边，看着像个空圆
+    el("ellipse", { cx: 0, cy: 0, rx: r * 0.84, ry: r, fill: "#E6D49A", stroke: INK, "stroke-width": 8 }, g);
+    [[-0.22, -0.34], [0.2, -0.08], [-0.06, 0.26], [0.26, 0.32]].forEach(([dx, dy]) => {
+      el("circle", { cx: dx * r, cy: dy * r, r: r * 0.085, fill: "#A88F52" }, g);
+    });
+    el("ellipse", { cx: -r * 0.3, cy: -r * 0.4, rx: r * 0.17, ry: r * 0.11,
+                    fill: "#FFFFFF", opacity: 0.65 }, g);
+  },
+  caterpillar: (g, s) => {
+    const r = s * 0.2;
+    const pts = [[-0.74, 0.22], [-0.4, 0.06], [-0.06, 0.0], [0.28, 0.08], [0.6, 0.24]];
+    pts.forEach(([x, y]) => {
+      el("circle", { cx: x * s, cy: y * s, r, fill: "#8FCB6A", stroke: INK, "stroke-width": 7 }, g);
+    });
+    // 头挂在最左边那节之外，不是压上去
+    const hx = -0.74 * s - r * 0.9;
+    el("circle", { cx: hx, cy: 0.2 * s, r: r * 1.15,
+                   fill: "#78B855", stroke: INK, "stroke-width": 7 }, g);
+    el("circle", { cx: hx - r * 0.38, cy: 0.12 * s, r: r * 0.16, fill: INK }, g);
+    el("path", { d: `M ${hx - r * 0.2} ${0.02 * s} q ${-s * 0.05} ${-s * 0.13} ${-s * 0.11} ${-s * 0.18}`,
+                 fill: "none", stroke: INK, "stroke-width": 6, "stroke-linecap": "round" }, g);
+    pts.forEach(([x, y]) => {
+      el("path", { d: `M ${x * s - r * 0.3} ${y * s + r * 0.85} l 0 ${r * 0.45}`,
+                   fill: "none", stroke: INK, "stroke-width": 6, "stroke-linecap": "round" }, g);
+    });
+  },
+  chrysalis: (g, s) => {
+    el("path", { d: `M 0 ${-s * 0.92} L 0 ${-s * 0.5}`, fill: "none", stroke: INK,
+                 "stroke-width": 6, "stroke-linecap": "round" }, g);
+    el("path", { d: `M 0 ${-s * 0.52} C ${s * 0.26} ${-s * 0.34} ${s * 0.3} ${s * 0.06} ${s * 0.2} ${s * 0.34} ` +
+                    `C ${s * 0.12} ${s * 0.56} ${-s * 0.12} ${s * 0.56} ${-s * 0.2} ${s * 0.34} ` +
+                    `C ${-s * 0.3} ${s * 0.06} ${-s * 0.26} ${-s * 0.34} 0 ${-s * 0.52} Z`,
+                 fill: "#A8C481", stroke: INK, "stroke-width": 8 }, g);
+    [0.0, 0.16, 0.3].forEach((yy, i) => {
+      el("path", { d: `M ${-s * (0.2 - i * 0.03)} ${s * yy} q ${s * (0.2 - i * 0.03)} ${s * 0.06} ${s * (0.4 - i * 0.06)} 0`,
+                   fill: "none", stroke: "#7C9A5B", "stroke-width": 4, opacity: 0.7 }, g);
+    });
+  },
+  butterfly: (g, s) => {
+    [-1, 1].forEach(sd => {
+      el("ellipse", { cx: sd * s * 0.42, cy: -s * 0.26, rx: s * 0.38, ry: s * 0.3,
+                      transform: `rotate(${sd * -18} ${sd * s * 0.42} ${-s * 0.26})`,
+                      fill: "#B98ED8", stroke: INK, "stroke-width": 7 }, g);
+      el("ellipse", { cx: sd * s * 0.34, cy: s * 0.2, rx: s * 0.28, ry: s * 0.24,
+                      transform: `rotate(${sd * 14} ${sd * s * 0.34} ${s * 0.2})`,
+                      fill: "#D3B4EC", stroke: INK, "stroke-width": 7 }, g);
+      el("circle", { cx: sd * s * 0.44, cy: -s * 0.3, r: s * 0.08, fill: "#F4E6A8" }, g);
+    });
+    el("ellipse", { cx: 0, cy: s * 0.04, rx: s * 0.075, ry: s * 0.34, fill: "#4A3B4C", stroke: INK, "stroke-width": 6 }, g);
+    el("circle", { cx: 0, cy: -s * 0.34, r: s * 0.09, fill: "#4A3B4C", stroke: INK, "stroke-width": 6 }, g);
+    [-1, 1].forEach(sd => {
+      el("path", { d: `M ${sd * s * 0.04} ${-s * 0.4} q ${sd * s * 0.1} ${-s * 0.16} ${sd * s * 0.22} ${-s * 0.24}`,
+                   fill: "none", stroke: INK, "stroke-width": 5, "stroke-linecap": "round" }, g);
+      el("circle", { cx: sd * s * 0.26, cy: -s * 0.64, r: s * 0.045, fill: INK }, g);
+    });
+  },
+  /* 工蚁：侧视三节（头/胸/腹）+ 六条腿 + 膝状触角。褐色系，避开考考蓝和小熹橙 */
+  ant: (g, s) => {
+    const ink = INK;
+    [-1, 1].forEach(sd => {
+      [0, 1, 2].forEach(i => {
+        const x = (i * 0.22 - 0.22) * s;
+        el("path", { d: `M ${x} ${s * 0.1} q ${sd * s * 0.12} ${s * 0.18} ${sd * s * 0.24} ${s * 0.34}`,
+                     fill: "none", stroke: ink, "stroke-width": 6, "stroke-linecap": "round" }, g);
+      });
+      el("path", { d: `M ${-s * 0.58} ${-s * 0.14} q ${-s * 0.16} ${-s * 0.26} ${-s * 0.24} ${-s * 0.42}`,
+                   fill: "none", stroke: ink, "stroke-width": 5, "stroke-linecap": "round" }, g);
+      el("circle", { cx: -s * 0.82, cy: -s * 0.56, r: s * 0.035, fill: ink }, g);
+    });
+    el("ellipse", { cx: s * 0.32, cy: 0, rx: s * 0.32, ry: s * 0.25,
+                    fill: "#8A6248", stroke: ink, "stroke-width": 7 }, g);
+    el("ellipse", { cx: -s * 0.18, cy: 0, rx: s * 0.22, ry: s * 0.17,
+                    fill: "#6B4630", stroke: ink, "stroke-width": 7 }, g);
+    el("circle", { cx: -s * 0.55, cy: -s * 0.02, r: s * 0.23,
+                   fill: "#7A5238", stroke: ink, "stroke-width": 7 }, g);
+    el("circle", { cx: -s * 0.63, cy: -s * 0.1, r: s * 0.055, fill: ink }, g);
+  },
+  /* 蚁后：腹显著更大（装卵）、胸部两道翅膀脱落后留下的痕，头略大 */
+  queen: (g, s) => {
+    const ink = INK;
+    [-1, 1].forEach(sd => {
+      [0, 1, 2].forEach(i => {
+        const x = (i * 0.22 - 0.22) * s;
+        el("path", { d: `M ${x} ${s * 0.12} q ${sd * s * 0.12} ${s * 0.18} ${sd * s * 0.24} ${s * 0.34}`,
+                     fill: "none", stroke: ink, "stroke-width": 6, "stroke-linecap": "round" }, g);
+      });
+      el("path", { d: `M ${-s * 0.6} ${-s * 0.16} q ${-s * 0.16} ${-s * 0.26} ${-s * 0.24} ${-s * 0.42}`,
+                   fill: "none", stroke: ink, "stroke-width": 5, "stroke-linecap": "round" }, g);
+      el("circle", { cx: -s * 0.84, cy: -s * 0.58, r: s * 0.035, fill: ink }, g);
+    });
+    [-1, 1].forEach(sd => {
+      el("path", { d: `M ${-s * 0.34} ${sd * s * 0.14} q ${s * 0.12} ${sd * s * 0.1} ${s * 0.26} ${sd * s * 0.12}`,
+                   fill: "none", stroke: "#4A3B2C", "stroke-width": 5, "stroke-linecap": "round", opacity: 0.55 }, g);
+    });
+    el("ellipse", { cx: s * 0.34, cy: 0, rx: s * 0.38, ry: s * 0.3,
+                    fill: "#8A6248", stroke: ink, "stroke-width": 7 }, g);
+    [0.16, 0.3, 0.44].forEach(ox => {
+      el("path", { d: `M ${s * (ox - 0.02)} ${-s * 0.22} q ${s * 0.02} ${s * 0.44} ${s * 0.04} 0`,
+                   fill: "none", stroke: "#5C3C2A", "stroke-width": 4, opacity: 0.5 }, g);
+    });
+    el("ellipse", { cx: -s * 0.2, cy: 0, rx: s * 0.24, ry: s * 0.2,
+                    fill: "#6B4630", stroke: ink, "stroke-width": 7 }, g);
+    el("circle", { cx: -s * 0.58, cy: -s * 0.02, r: s * 0.25,
+                   fill: "#7A5238", stroke: ink, "stroke-width": 7 }, g);
+    el("circle", { cx: -s * 0.66, cy: -s * 0.1, r: s * 0.06, fill: ink }, g);
+  },
+  bulb: (g, s) => {
+    el("circle", { cx: 0, cy: -s * 0.15, r: s * 0.52, fill: "#FFE98A", stroke: INK, "stroke-width": 8 }, g);
+    el("path", { d: `M ${-s * 0.2} ${s * 0.36} h ${s * 0.4} l ${-s * 0.04} ${s * 0.24} h ${-s * 0.32} z`,
+                 fill: "#D8D2C4", stroke: INK, "stroke-width": 7, "stroke-linejoin": "round" }, g);
+    el("path", { d: `M ${-s * 0.14} ${s * 0.2} q ${s * 0.14} ${-s * 0.12} ${s * 0.28} 0`, fill: "none",
+                 stroke: "#F5A623", "stroke-width": 8, "stroke-linecap": "round" }, g);
+  },
+  sun: (g, s) => {
+    for (let i = 0; i < 12; i++) {
+      const a = i * Math.PI / 6;
+      el("line", { x1: Math.cos(a) * s * 0.6, y1: Math.sin(a) * s * 0.6, x2: Math.cos(a) * s * 0.9, y2: Math.sin(a) * s * 0.9,
+                   stroke: "#FFB300", "stroke-width": 12, "stroke-linecap": "round" }, g);
+    }
+    el("circle", { cx: 0, cy: 0, r: s * 0.46, fill: "#FFD34D", stroke: INK, "stroke-width": 8 }, g);
+  },
+  drop: (g, s) => {
+    el("path", { d: `M0 ${-s * 0.72} C ${s * 0.52} ${-s * 0.1} ${s * 0.42} ${s * 0.34} ${s * 0.1} ${s * 0.54} ` +
+                    `C ${-s * 0.3} ${s * 0.8} ${-s * 0.56} ${s * 0.2} 0 ${-s * 0.72} Z`,
+                 fill: "#7FC8E8", stroke: INK, "stroke-width": 8, "stroke-linejoin": "round" }, g);
+    el("ellipse", { cx: -s * 0.16, cy: s * 0.12, rx: s * 0.1, ry: s * 0.18, fill: "#FFFFFF", opacity: 0.75 }, g);
+  },
+  wave: (g, s) => {
+    [0, 1, 2].forEach(i => {
+      el("path", { d: `M ${-s * 0.8} ${-s * 0.3 + i * s * 0.34} q ${s * 0.4} ${-s * 0.3} ${s * 0.8} 0 q ${s * 0.4} ${s * 0.3} ${s * 0.8} 0`,
+                   fill: "none", stroke: ["#7FD6F0", "#9FE3F5", "#C9F0FA"][i], "stroke-width": 14, "stroke-linecap": "round" }, g);
+    });
+  },
+  leaf: (g, s) => {
+    el("path", { d: `M ${-s * 0.5} ${s * 0.6} C ${-s * 0.5} ${-s * 0.4} ${s * 0.2} ${-s * 0.7} ${s * 0.62} ${-s * 0.6} ` +
+                    `C ${s * 0.7} ${s * 0.1} ${s * 0.2} ${s * 0.66} ${-s * 0.5} ${s * 0.6} Z`,
+                 fill: "#8FD44B", stroke: INK, "stroke-width": 8, "stroke-linejoin": "round" }, g);
+    el("path", { d: `M ${-s * 0.4} ${s * 0.5} Q 0 0 ${s * 0.5} ${-s * 0.5}`, fill: "none",
+                 stroke: "#5FB32F", "stroke-width": 7, "stroke-linecap": "round" }, g);
+  },
+  lens: (g, s) => {
+    el("circle", { cx: -s * 0.1, cy: -s * 0.1, r: s * 0.46, fill: "#CFEFFB", opacity: 0.7, stroke: INK, "stroke-width": 9 }, g);
+    el("line", { x1: s * 0.24, y1: s * 0.24, x2: s * 0.72, y2: s * 0.72, stroke: INK, "stroke-width": 16, "stroke-linecap": "round" }, g);
+  },
+  cell: (g, s) => {
+    el("circle", { cx: 0, cy: 0, r: s * 0.72, fill: "#6ED3B0", opacity: 0.55, stroke: INK, "stroke-width": 8 }, g);
+    el("circle", { cx: s * 0.1, cy: -s * 0.08, r: s * 0.3, fill: "#2E8E74", stroke: INK, "stroke-width": 6 }, g);
+    el("circle", { cx: -s * 0.36, cy: s * 0.3, r: s * 0.12, fill: "#8FE3C8" }, g);
+  },
+  bolt: (g, s) => {
+    el("path", { d: `M ${s * 0.12} ${-s * 0.82} L ${-s * 0.22} ${s * 0.06} L ${s * 0.06} ${s * 0.06} ` +
+                    `L ${-s * 0.1} ${s * 0.84} L ${s * 0.4} ${-s * 0.12} L ${s * 0.1} ${-s * 0.12} ` +
+                    `L ${s * 0.34} ${-s * 0.82} Z`,
+                 fill: "#FFD34D", stroke: INK, "stroke-width": 8, "stroke-linejoin": "round" }, g);
+  },
+  cloud: (g, s) => {
+    el("path", { d: `M ${-s * 0.8} ${s * 0.3} Q ${-s * 0.9} ${-s * 0.1} ${-s * 0.45} ${-s * 0.16} ` +
+                    `Q ${-s * 0.4} ${-s * 0.6} ${s * 0.02} ${-s * 0.58} ` +
+                    `Q ${s * 0.46} ${-s * 0.64} ${s * 0.52} ${-s * 0.16} ` +
+                    `Q ${s * 0.92} ${-s * 0.1} ${s * 0.82} ${s * 0.3} Z`,
+                 fill: "#D8E6F2", stroke: INK, "stroke-width": 8, "stroke-linejoin": "round" }, g);
+  },
+  timer: (g, s) => {
+    el("circle", { cx: 0, cy: 0, r: s * 0.66, fill: "#FDF4E2", stroke: INK, "stroke-width": 9 }, g);
+    el("path", { d: `M 0 ${-s * 0.66} v ${-s * 0.16}`, stroke: INK, "stroke-width": 12, "stroke-linecap": "round" }, g);
+    el("path", { d: `M 0 0 L ${s * 0.34} ${-s * 0.2}`, stroke: "#E4462E", "stroke-width": 10, "stroke-linecap": "round" }, g);
+    el("circle", { cx: 0, cy: 0, r: s * 0.07, fill: INK }, g);
+  },
+  arrow: (g, s) => {
+    el("path", { d: `M ${-s * 0.7} 0 H ${s * 0.42} M ${s * 0.2} ${-s * 0.3} L ${s * 0.62} 0 L ${s * 0.2} ${s * 0.3}`,
+                 fill: "none", stroke: "#F5813C", "stroke-width": 18, "stroke-linecap": "round", "stroke-linejoin": "round" }, g);
+  },
+};
+
+/* ==================================================================
+   场景类型
+   每个：mount(host, seg) → 建静态结构，返回 update(u, tt)
+   u = 段内进度 0..1，tt = 段内秒数
+================================================================== */
+const SCENES = {};
+
+/* ---------- 通用：角色出场（可对话、可说话动嘴） ---------- */
+function castChars(host, o) {
+  const wrap = el("g", {}, host);
+  const KS = o.kaoScale || 0.92, XS = o.xiScale || 1.34;
+  const kx = o.kaoX || 560, xx = o.xiX || 1320, feet = o.feet || 1010;
+
+  // 接地阴影分两层：接触阴影紧贴脚底（深、小）+ 环境阴影铺开（淡、大）。
+  // 只铺一层的话，深色地面上看不见、浅色地面上又像块脏斑。
+  // data-crisp：阴影不该被 Rough.js 抖成毛边
+  const sh = el("g", { "data-crisp": "1" }, wrap);
+  [[kx, KS, 30], [xx, XS * 0.66, 26]].forEach(([cx0, wk, ry0]) => {
+    el("ellipse", { cx: cx0, cy: feet - 4, rx: 74 * wk, ry: ry0 * wk,
+                    fill: "#000000", opacity: 0.20 }, sh);
+    el("ellipse", { cx: cx0, cy: feet + 8, rx: 150 * wk, ry: 34 * wk,
+                    fill: "url(#gShadow)" }, sh);
+  });
+
+  const kaoG = el("g", {}, wrap);
+  const xiG = el("g", {}, wrap);
+  // 传 parent 进去：图元一创建就连在 DOM 上，Rough.js 才能量到真实尺寸
+  const kao = buildKao(el, o.kaoExpr || "idle", kaoG);
+  const xi = buildXi(el, {
+    view: o.xiView || "front",
+    expr: o.xiExpr || "idle",
+    tail: o.xiTail || "still",
+  }, xiG);
+  return { wrap, kaoG, xiG, kao, xi, KS, XS, kx, xx, feet, sh };
+}
+
+function animMouth(node, anchor, on, tt, rate) {
+  const k = on ? 0.42 + 0.62 * Math.abs(Math.sin(tt * (rate || 13)) * Math.sin(tt * 7.1 + 1.1)) : 1;
+  node.setAttribute("transform", `translate(0 ${anchor}) scale(1 ${k}) translate(0 ${-anchor})`);
+}
+
+function blink(node, tt, seed) {
+  const cycle = 2.6 + (seed % 7) * 0.31;
+  const ph = tt % cycle;
+  const k = ph < 0.11 ? 0.1 : 1;
+  node.setAttribute("transform", `translate(0 -450) scale(1 ${k}) translate(0 450)`);
+}
+
+/* ---------- title：片头 / 封面 ----------
+   片头这一帧同时是封面，所以构图按封面来：
+     · 标题靠左上，字号大到缩略图也认得出
+     · 本集讲的那个东西（cover）放在右侧当主体
+     · 四周留 96px 安全边距，平台裁切也不会切到字
+   给了 cover 就用这套；没给退回旧居中版（会报警，提示补封面）。
+------------------------------------------------------------------------- */
+SCENES.title = {
+  mount(host, seg) {
+    const coverFn = seg.cover ? FIGURES[seg.cover] : null;
+    if (coverFn) {
+      const hero = el("g", {}, host);
+      const upd = coverFn(hero, seg);
+      const s = seg.coverScale || 1;
+      const dx = seg.coverX || 0, dy = seg.coverY || 0;
+      // 围绕画面中心缩放，再整体平移，方便把主体挪到右半边
+      hero.setAttribute("transform",
+        `translate(${dx} ${dy}) translate(960 540) scale(${s}) translate(-960 -540)`);
+
+      const M = 104;                       // 安全边距
+      const brand = el("g", {}, host);
+      const b = txt(brand, seg.brand || "考考&小熹", M, 118, 44, INK, 800, "start");
+      b.setAttribute("stroke", CREAM); b.setAttribute("stroke-width", 11);
+      b.setAttribute("stroke-linejoin", "round"); b.setAttribute("paint-order", "stroke fill");
+      el("path", { d: `M ${M} 148 H ${M + 300}`, stroke: CREAM, "stroke-width": 9, "stroke-linecap": "round" }, brand);
+      el("path", { d: `M ${M} 148 H ${M + 300}`, stroke: INK, "stroke-width": 3, opacity: 0.45 }, brand);
+
+      // 标题：封面上的字要人调，不让它自动断行——自动断行经常甩出一个孤零零的「？」
+      // titleLines 给了就按行摆；没给就单行，字号按字数压。字号随最长行自适应，保证不缩到看不清。
+      const lines = (seg.titleLines && seg.titleLines.length)
+        ? seg.titleLines.slice(0, 2)
+        : [seg.title || ""];
+      const longest = Math.max(1, ...lines.map(l => l.length));
+      const fs = Math.max(64, Math.min(112, Math.floor(920 / longest)));
+      const head = el("g", {}, host);
+      lines.forEach((ln, i) => {
+        const t = txt(head, ln, M, 330 + i * fs * 1.16, fs, INK, 800, "start");
+        t.setAttribute("stroke", CREAM); t.setAttribute("stroke-width", Math.round(fs * 0.17));
+        t.setAttribute("stroke-linejoin", "round"); t.setAttribute("paint-order", "stroke fill");
+      });
+      // 副标：和标题重复就不画（封面寸土寸金）
+      const kick = (seg.kicker || "").trim();
+      const redundant = !kick || kick === seg.title || seg.title.includes(kick);
+      if (!redundant) {
+        const ky = 330 + (lines.length - 1) * fs * 1.16 + 76;
+        const k = txt(head, kick, M, ky, 46, "#B4551F", 800, "start");
+        k.setAttribute("stroke", CREAM); k.setAttribute("stroke-width", 12);
+        k.setAttribute("paint-order", "stroke fill");
+      }
+      return (tt, u) => {
+        const k = easeOut(clamp(u / 0.12, 0, 1));
+        hero.setAttribute("opacity", k);
+        hero.setAttribute("transform",
+          `translate(${dx} ${dy + lerp(18, 0, k)}) translate(960 540) scale(${s}) translate(-960 -540)`);
+        if (upd) upd(tt, u);
+        head.setAttribute("opacity", easeOut(clamp((u - 0.04) / 0.12, 0, 1)));
+        head.setAttribute("transform", `translate(0 ${lerp(26, 0, easeOut(clamp((u - 0.04) / 0.14, 0, 1)))})`);
+        brand.setAttribute("opacity", easeOut(clamp(u / 0.12, 0, 1)));
+      };
+    }
+
+    // feet 同样留余量：片头镜头从 1.075 收到 1.03
+    // 角色退到下方两侧，中间留给标题——不然标题一居中就压在头上
+    const c = castChars(host, { kaoX: 340, xiX: 1420, feet: 1012, kaoScale: 0.9, xiScale: 1.3, kaoExpr: "idle" });
+
+    // 品牌退到左上角当台标，标题占据画面中心。
+    // 原来品牌压在中间的大蓝卡上、标题被挤到右边，观众第一眼不知道这集讲什么
+    const brand = el("g", {}, host);
+    const b = txt(brand, seg.brand || "考考&小熹", 138, 112, 50, INK, 800, "start");
+    b.setAttribute("stroke", CREAM);
+    b.setAttribute("stroke-width", 11);
+    b.setAttribute("stroke-linejoin", "round");
+    b.setAttribute("paint-order", "stroke fill");
+    el("path", { d: "M 138 142 H 470", stroke: CREAM, "stroke-width": 9, "stroke-linecap": "round" }, brand);
+    el("path", { d: "M 138 142 H 470", stroke: INK, "stroke-width": 3, opacity: 0.45 }, brand);
+
+    const head = el("g", {}, host);
+    const q = wrapTxt(head, seg.title || "", 960, 400, 92, INK, 800, 10, 118, "middle");
+    q.forEach(t => {
+      t.setAttribute("stroke", CREAM);
+      t.setAttribute("stroke-width", 16);
+      t.setAttribute("stroke-linejoin", "round");
+      t.setAttribute("paint-order", "stroke fill");
+    });
+    // 副标只写话题，不写「05 ·」——序号会把每一集绑成连续剧
+    if (seg.kicker) {
+      const k = txt(head, seg.kicker, 960, 502, 44, INK, 700);
+      k.setAttribute("stroke", CREAM);
+      k.setAttribute("stroke-width", 12);
+      k.setAttribute("stroke-linejoin", "round");
+      k.setAttribute("paint-order", "stroke fill");
+    }
+
+    const dots = el("g", {}, host);
+    const D = [];
+    for (let i = 0; i < 14; i++) {
+      const g = el("g", {}, dots);
+      el("circle", { cx: 0, cy: 0, r: 5, fill: "#FFE98A" }, g);
+      D.push({ g, x: rnd(i * 3.7) * W, y: 120 + rnd(i * 5.1) * 800, p: rnd(i * 2.9) * 6.28 });
+    }
+    return (tt, u) => {
+      c.kaoG.setAttribute("transform", `translate(${c.kx} ${c.feet}) scale(${c.KS})`);
+      const bounce = Math.sin(tt * 2.2) * 8;
+      c.xiG.setAttribute("transform", `translate(${c.xx} ${c.feet + bounce}) scale(${c.XS})`);
+      brand.setAttribute("opacity", easeOut(u / 0.12));
+      head.setAttribute("transform", `translate(0 ${lerp(30, 0, easeOut(u / 0.16))})`);
+      head.setAttribute("opacity", easeOut(u / 0.1));
+      D.forEach(d => {
+        d.g.setAttribute("transform", `translate(${d.x} ${d.y + Math.sin(tt * 1.4 + d.p) * 20})`);
+        d.g.setAttribute("opacity", 0.4 + 0.6 * Math.abs(Math.sin(tt + d.p)));
+      });
+    };
+  }
+};
+
+/* ---------- talk：角色对话（最常用） ---------- */
+SCENES.talk = {
+  mount(host, seg) {
+    /* 景别：shot = "close" 把镜头推到脸上。
+       中景用来讲道理，大脸用来给情绪——参考片最抓人的就是这种镜头。
+       做法：同一套角色放大 3 倍、脚底推到画面外，只留头肩，眼睛落在画面中上部。 */
+    const close = seg.shot === "close";
+    const spkXi = seg.speaker === "xi";
+    const EYE_Y = 470;
+    // 两个角色在各自坐标系里的眼睛高度不一样：考考 -450，小熹 -160（头小、单位也小）。
+    // 用错基准，脸就会掉到画面底下——只露出头顶。
+    const EYE_LOCAL = spkXi ? 160 : 450;
+    const sc = close ? (spkXi ? 6.6 : 3.0) : 0;
+    const c = castChars(host, close ? {
+      kaoX: spkXi ? -2600 : 960, xiX: spkXi ? 960 : 2600,
+      feet: EYE_Y + EYE_LOCAL * sc,
+      kaoScale: spkXi ? 0.92 : sc, xiScale: spkXi ? sc : 1.34,
+      kaoExpr: seg.kaoExpr || "idle",
+      xiView: seg.xiView || "front", xiExpr: seg.xiExpr || "idle", xiTail: seg.xiTail || "still",
+    } : {
+      kaoX: seg.kaoX || 520, xiX: seg.xiX || 1340, feet: seg.feet || 950,
+      kaoScale: seg.kaoScale || 0.92, xiScale: seg.xiScale || 1.34,
+      kaoExpr: seg.kaoExpr || "idle",
+      xiView: seg.xiView || "front", xiExpr: seg.xiExpr || "idle", xiTail: seg.xiTail || "still",
+    });
+    const say = seg.say ? el("g", {}, host) : null;
+    if (say) {
+      /* 漫画式对白：气泡跟着说话的人走，不再横在画面中央。
+         原来最大 1280 宽、固定居中，一句话能把整块背景盖掉；
+         现在上限 780、靠说话者一侧，长句自动折两行。 */
+      const isXi = seg.speaker === "xi";
+      // 大脸特写时说话人一定在画面中间，气泡挂到头顶上方的空白区
+      const spkX = close ? 960 : (isXi ? (seg.xiX || 1340) : (seg.kaoX || 520));
+      const onLeft = spkX < 960;
+      // 左右各留 70px 内边距。之前 20 字的气泡会把文字顶到描边上，看着像被框切了一刀
+      const bw = clamp(seg.say.length * 42 + 180, 380, 880);
+      const fs = 42;
+      const maxChars = Math.max(6, Math.floor((bw - 140) / fs));
+      const nLines = Math.max(1, Math.ceil(seg.say.length / maxChars));
+      const lh = 54;
+      const bh = 96 + nLines * lh;
+      const bx = seg.sayX || (close ? 960 : (onLeft ? 452 : 1468));
+      const by = seg.sayY || (close ? 180 : 286);
+
+      // 投影
+      el("rect", { x: -bw / 2 + 4, y: -bh / 2 + 7, width: bw, height: bh, rx: 34,
+                   fill: INK, opacity: 0.20, style: "filter:blur(15px)" }, say);
+      // 主体
+      el("rect", { x: -bw / 2, y: -bh / 2, width: bw, height: bh, rx: 34,
+                   fill: CREAM, stroke: INK, "stroke-width": 9 }, say);
+      // 左上高光弧：一条细白线，气泡立刻从"色块"变成"有涂层的东西"
+      el("path", { d: `M ${-bw / 2 + 30} ${-bh / 2 + 24} q ${bw * 0.34} -13 ${bw - 68} 2`,
+                   fill: "none", stroke: "#FFFFFF", "stroke-width": 5,
+                   "stroke-linecap": "round", opacity: 0.45 }, say);
+
+      // 尾巴：曲线水滴，指向说话者脚下位置
+      const tx = clamp(spkX - bx, -bw / 2 + 72, bw / 2 - 72);
+      const ty = bh / 2 - 6;
+      el("path", { d: `M ${tx - 32} ${ty} Q ${tx - 12} ${ty + 50} ${tx + 4} ${ty + 58} ` +
+                      `Q ${tx + 10} ${ty + 28} ${tx + 32} ${ty}`,
+                   fill: CREAM, stroke: INK, "stroke-width": 9, "stroke-linejoin": "round" }, say);
+      el("rect", { x: tx - 34, y: ty - 16, width: 68, height: 20, fill: CREAM }, say);
+
+      wrapTxt(say, seg.say, 0, -(nLines - 1) * lh / 2 + 15, fs, INK, 700, maxChars, lh, "middle");
+      // 入场：从说话者那一侧弹进来，带一点方向感
+      const dir = onLeft ? -1 : 1;
+      say.setAttribute("transform",
+        `translate(${bx + dir * 22} ${by + 16}) scale(${0.86})`);
+      say.__intro = { bx, by, dir };
+    }
+    // 动嘴看「谁在配音」，压暗看「谁在说话」—— 旁白讲道理时两人都别动嘴
+    const role = seg.voice || seg.speaker;
+    return (tt, u) => {
+      const active = seg.speaker;
+      const kaoTalk = role === "kao";
+      const xiTalk = role === "xi";
+      /* 动作由四层叠出来，不再是单纯的上下浮动：
+         呼吸（竖向微缩放）+ 重心摇摆（以脚底为轴的旋转）+ 说话前倾 + 倾听点头。
+         两人相位错开，否则会像两个同一台机器驱动的假人。 */
+      const kaoListening = !kaoTalk;
+      const xiListening = !xiTalk;
+      // 点头用 6 次方做脉冲：大部分时间不动，偶尔点一下
+      const nodK = kaoListening ? Math.pow(Math.max(0, Math.sin(tt * 2.05 + 0.7)), 6) : 0;
+      const nodX = xiListening ? Math.pow(Math.max(0, Math.sin(tt * 2.35 + 2.2)), 6) : 0;
+
+      const kb = (kaoTalk ? Math.sin(tt * 8.5) * 3.2 : Math.sin(tt * 1.55) * 2.6) + nodK * 7;
+      const xb = (xiTalk ? Math.sin(tt * 7.6) * 4.2 : Math.sin(tt * 1.85) * 3.0) + nodX * 8;
+
+      const kSway = Math.sin(tt * 0.72 + 0.6) * 1.0 + (kaoTalk ? Math.sin(tt * 3.0) * 0.8 : 0) + nodK * 0.7;
+      const xSway = Math.sin(tt * 0.88 + 2.1) * 1.7 + (xiTalk ? Math.sin(tt * 3.4) * 1.1 : 0) + nodX * 0.9;
+
+      const kBreath = 1 + Math.sin(tt * 1.45) * 0.006 + (kaoTalk ? 0.010 : 0);
+      const xBreath = 1 + Math.sin(tt * 1.75 + 0.4) * 0.008 + (xiTalk ? 0.014 : 0);
+
+      c.kaoG.setAttribute("transform",
+        `translate(${c.kx} ${c.feet + kb}) rotate(${kSway}) scale(${c.KS * kBreath})`);
+      c.xiG.setAttribute("transform",
+        `translate(${c.xx} ${c.feet + xb}) rotate(${xSway}) scale(${c.XS * xBreath})`);
+      if (c.kao.__mouth && (seg.kaoExpr || "") === "talk") animMouth(c.kao.__mouth, -378, kaoTalk, tt, 13);
+      if (c.xi.__mouth) animMouth(c.xi.__mouth, -125, xiTalk, tt, 15);
+      if (c.kao.__eyes) blink(c.kao.__eyes, tt, 3);
+      // 非说话方压暗一点点，把注意力留给说话的人
+      c.kaoG.setAttribute("opacity", xiTalk ? 0.82 : 1);
+      c.xiG.setAttribute("opacity", kaoTalk ? 0.82 : 1);
+      if (say) {
+        const k = clamp(u / 0.15, 0, 1);
+        const e = easeBack(k);
+        say.setAttribute("transform",
+          `translate(${say.__intro.bx + say.__intro.dir * 24 * (1 - k)} ` +
+          `${say.__intro.by + 18 * (1 - k)}) scale(${0.86 + 0.14 * e})`);
+        say.setAttribute("opacity", clamp(u / 0.06, 0, 1));
+      }
+    };
+  }
+};
+
+/* ---------- song：片尾儿歌（歌词板，逐句高亮） ----------
+   每集把三个知识点压成 6–8 句押韵短句。孩子记不住道理，但记得住顺口溜。
+   高亮按「字数比例」推进：TTS 的停顿不完全均匀，但比整段常亮好得多。 */
+SCENES.song = {
+  mount(host, seg) {
+    const lines = (seg.song || []).slice(0, 8);
+    const card = el("g", {}, host);
+    el("rect", { x: 132, y: 168, width: 1656, height: 760, rx: 56,
+                 fill: INK, opacity: 0.24, style: "filter:blur(24px)" }, card);
+    el("rect", { x: 120, y: 156, width: 1656, height: 760, rx: 56, fill: CREAM,
+                 stroke: INK, "stroke-width": 12 }, card);
+    txt(card, seg.title || "记住这首歌", 948, 246, 54, "#B4551F", 700);
+    el("path", { d: "M 420 292 H 1476", stroke: "#D3BE99", "stroke-width": 4 }, card);
+    el("circle", { cx: 424, cy: 292, r: 6, fill: "#D3BE99" }, card);
+    el("circle", { cx: 1472, cy: 292, r: 6, fill: "#D3BE99" }, card);
+
+    const half = Math.ceil(lines.length / 2);
+    // 列距跟着最长句走：固定 620/1300 时空隙近 250px，歌词像被撕成两半；
+    // 按「最长高亮条 + 40px 呼吸」动态居中，既收紧又不会让长句两列重叠。
+    const maxLen = lines.reduce((m, s) => Math.max(m, s.length), 1);
+    const colGap = maxLen * 46 + 64 + 40;
+    const leftX = 948 - colGap / 2, rightX = 948 + colGap / 2;
+    const rows = [];
+    // 先算总分再分段：边遍历边除会让每一段的终点都变成 1，第一句永远高亮
+    const total = lines.reduce((a, s) => a + s.length, 0) || 1;
+    let acc = 0;
+    const cues = lines.map(s => {
+      const st = acc / total;
+      acc += s.length;
+      return { st, en: acc / total };
+    });
+    lines.forEach((s, i) => {
+      const col = i < half ? 0 : 1;
+      const x = col === 0 ? leftX : rightX;
+      const y = 400 + (i % half) * 128;
+      const g = el("g", {}, host);
+      // 高亮条跟着句子长度走：固定宽度会让短句看起来像被人用荧光笔乱涂了一道
+      const w = s.length * 46 + 64;
+      const hl = el("rect", { x: x - w / 2, y: y - 52, width: w, height: 84, rx: 24,
+                              fill: "#FFD34D", opacity: 0 }, g);
+      const t = txt(g, s, x, y, 46, INK, 700);
+      rows.push({ g, hl, t, i });
+    });
+
+    return (tt, u) => {
+      card.setAttribute("opacity", easeOut(u / 0.08));
+      // 打拍子：整块卡片轻微起伏，像在跟着唱
+      const beat = 1 + Math.sin(tt * 5.0) * 0.0035;
+      card.setAttribute("transform", `translate(948 536) scale(${beat}) translate(-948 -536)`);
+      rows.forEach((r, i) => {
+        const k = clamp((u - 0.04 - i * 0.03) / 0.08, 0, 1);
+        r.g.setAttribute("opacity", easeOut(k));
+        r.g.setAttribute("transform", `translate(0 ${lerp(20, 0, easeOut(k))})`);
+      });
+      const ai = cues.findIndex(c => u >= c.st && u < c.en);
+      rows.forEach((r, i) => r.hl.setAttribute("opacity", i === ai ? 0.8 : 0));
+    };
+  }
+};
+
+/* ---------- figure：按对象本身画（不套圆盘） ----------
+   讲的具体是什么，就画成什么样：玻璃鳗是半透明的小长条，不是一片树叶。
+   画法由每集 scenery.js 用 SCENE_KIT.figure("名字", fn) 提供。
+   和 show 的分工：
+     show   只留给抽象概念（光、波、循环）——那些本来就没有具体长相；
+     figure 用来画具体东西（某种鱼、某个器官、某件器物）。
+------------------------------------------------------------------------- */
+const FIGURES = {};
+SCENES.figure = {
+  mount(host, seg) {
+    const fn = FIGURES[seg.figure];
+    if (!fn) {
+      // 找不到就明说，别静默画个空画面
+      const t = txt(host, "缺图：" + (seg.figure || "?"), 960, 540, 44, "#FFD34D", 700);
+      t.setAttribute("stroke", INK); t.setAttribute("stroke-width", 10);
+      t.setAttribute("paint-order", "stroke fill");
+      return () => {};
+    }
+    const g = el("g", {}, host);
+    const upd = fn(g, seg);
+    return (tt, u) => {
+      const k = clamp(u / 0.10, 0, 1);
+      g.setAttribute("opacity", easeOut(k));
+      g.setAttribute("transform", `translate(0 ${lerp(26, 0, easeOut(k))})`);
+      if (upd) upd(tt, u);
+    };
+  }
+};
+
+/* ---------- show：大特写（聚光 + 符号 + 标注） ---------- */
+/* show：讲知识的主画面。
+   已废弃「大圆盘 + 一个图标」：那个圈和文案没有关系，只在装饰画面，看起来像瞎画。
+   现在必须给 figure —— 这一段讲什么，画面里就画什么。给不出就明示缺图。 */
+SCENES.show = {
+  mount(host, seg) {
+    const fn = FIGURES[seg.figure];
+    if (!fn) {
+      const t = txt(host, "缺图：" + (seg.figure || "未指定 figure"), 960, 456, 46, "#FFD34D", 700);
+      t.setAttribute("stroke", INK); t.setAttribute("stroke-width", 10);
+      t.setAttribute("paint-order", "stroke fill");
+      const s = txt(host, "这一段讲什么，就要把那个东西画出来", 960, 546, 34, CREAM, 600);
+      s.setAttribute("opacity", 0.85);
+      s.setAttribute("stroke", INK); s.setAttribute("stroke-width", 8); s.setAttribute("paint-order", "stroke fill");
+      return () => {};
+    }
+    const g = el("g", {}, host);
+    const upd = fn(g, seg);
+    // 标题放顶部横带，不压图案主体
+    const title = seg.big ? wrapTxt(host, seg.big, 960, 128, 62, CREAM, 700, 18, 74) : [];
+    title.forEach(t => {
+      t.setAttribute("stroke", INK); t.setAttribute("stroke-width", 12);
+      t.setAttribute("paint-order", "stroke fill");
+    });
+    return (tt, u) => {
+      const k = clamp(u / 0.10, 0, 1);
+      g.setAttribute("opacity", easeOut(k));
+      g.setAttribute("transform", `translate(0 ${lerp(24, 0, easeOut(k))})`);
+      if (upd) upd(tt, u);
+      title.forEach(t => t.setAttribute("opacity", clamp((u - 0.06) / 0.1, 0, 1)));
+    };
+  }
+};
+
+/* ---------- photo：实拍图（缓慢推拉 + 统一调色 + 角标署名） ----------
+   图片由 build.py 读成 base64 内联进来（file:// 下 <image href="本地路径"> 会被 Chrome 拦）。
+   调色是为了让照片和卡通画面不那么割裂：降饱和、压一点对比、叠暖色。 */
+SCENES.photo = {
+  mount(host, seg) {
+    if (!seg.photo) return () => {};
+    const g = el("g", {}, host);
+    // 图比画面大 8%，推近时不会露边
+    const img = el("image", {
+      href: seg.photo, x: -80, y: -45, width: W + 160, height: H + 90,
+      preserveAspectRatio: "xMidYMid slice",
+    }, g);
+    // 统一到卡通的色感：暖色软光 + 轻微降饱和由 ffmpeg 负责，这里只加氛围
+    el("rect", { width: W, height: H, fill: "#E8B96A", opacity: 0.10,
+                 style: "mix-blend-mode:soft-light" }, g);
+    el("rect", { width: W, height: H, fill: "url(#gVig)", opacity: 0.55 }, g);
+
+    // 角标署名：CC BY / CC BY-SA 要求可见署名，右下角小条
+    if (seg.credit) {
+      /* 角标位置：默认右上角；creditPos:"br" 放右下角。
+         右下角要压到字幕下方（基线 1006），所以落点放 1046，否则会和第二行字幕叠在一起。
+         底下垫一条半透明胶囊：照片可能是亮草地，纯白字不加底会看不清。 */
+      const br = seg.creditPos === "br";
+      const cy = br ? H - 34 : 40;
+      const cw = Math.min(W - 80, seg.credit.length * 15.5 + 40);
+      el("rect", { x: W - 28 - cw, y: cy - 26, width: cw, height: 44, rx: 22,
+                   fill: "#000000", opacity: 0.26 }, host);
+      const t = txt(host, seg.credit, W - 46, cy, 26, "#FFFFFF", 600, "end");
+      t.setAttribute("stroke", "#000000"); t.setAttribute("stroke-width", 7);
+      t.setAttribute("paint-order", "stroke fill"); t.setAttribute("opacity", 0.95);
+    }
+    // 缓慢推近 + 轻微横移，静图也有呼吸
+    const to = seg.kenBurns === "out" ? 1.0 : 1.08;
+    const from = seg.kenBurns === "out" ? 1.12 : 1.0;
+    return (tt, u) => {
+      const k = lerp(from, to, easeOut(u));
+      const px = 60 * Math.sin(u * Math.PI);
+      g.setAttribute("transform",
+        `translate(${960 + px} ${540}) scale(${k}) translate(-960 -540)`);
+      img.setAttribute("opacity", clamp(u / 0.08, 0, 1));
+    };
+  }
+};
+
+/* ---------- credits：图片署名卡（有实拍素材时自动插在 outro 前） ---------- */
+SCENES.credits = {
+  mount(host, seg) {
+    const items = seg.items || [];
+    const panel = el("g", {}, host);
+    el("rect", { x: 268, y: 168, width: 1384, height: 700, rx: 48, fill: INK, opacity: 0.2,
+                 style: "filter:blur(20px)" }, panel);
+    el("rect", { x: 250, y: 150, width: 1384, height: 700, rx: 48, fill: CREAM,
+                 stroke: INK, "stroke-width": 12, opacity: 0.98 }, panel);
+    txt(panel, seg.title || "图片来源", 960, 252, 54, "#B4551F", 700);
+    el("path", { d: "M 330 292 H 1554", stroke: "#D3BE99", "stroke-width": 4 }, panel);
+    const list = items.slice(0, 6);
+    // 条目少的时候贴顶会显得空，按条数垂直居中
+    const y0 = 500 - (list.length - 1) * 44;
+    const rows = list.map((it, i) => {
+      const y = y0 + i * 88;
+      const g = el("g", {}, host);
+      txt(g, String(i + 1), 352, y, 34, "#B4551F", 700, "middle");
+      const t = txt(g, it.text || "", 420, y, 32, INK, 500, "start");
+      return { g, t };
+    });
+    return (tt, u) => {
+      panel.setAttribute("opacity", easeOut(u / 0.08));
+      rows.forEach((r, i) => {
+        const k = clamp((u - 0.06 - i * 0.05) / 0.08, 0, 1);
+        r.g.setAttribute("opacity", k);
+      });
+    };
+  }
+};
+
+/* ---------- card：知识卡（要点逐条进） ---------- */
+SCENES.card = {
+  mount(host, seg) {
+    const panel = el("g", {}, host);
+    // 投影：卡片是奶油色，遇到同样浅的室内背景就糊成一片，垫一层偏移暗块才立得起来。
+    // 必须是模糊的——硬边矩形偏移出来会被看成卡片右侧多了一道"厚边"
+    el("rect", { x: 238, y: 150, width: 1480, height: 748, rx: 48, fill: INK, opacity: 0.22,
+                 style: "filter:blur(20px)" }, panel);
+    el("rect", { x: 220, y: 128, width: 1480, height: 748, rx: 48, fill: CREAM, stroke: INK, "stroke-width": 12, opacity: 0.98 }, panel);
+    txt(panel, seg.title || "这一集的三件事", 960, 236, 58, "#B4551F", 700);
+    // 左缘色条：给大片奶油色一个视觉锚点，否则卡片像张白纸
+    el("rect", { x: 220, y: 196, width: 15, height: 150, rx: 8, fill: "#F5813C", opacity: 0.9 }, panel);
+    el("path", { d: "M 330 268 H 1590", stroke: "#D3BE99", "stroke-width": 4 }, panel);
+    el("circle", { cx: 332, cy: 268, r: 6, fill: "#D3BE99" }, panel);
+    el("circle", { cx: 1588, cy: 268, r: 6, fill: "#D3BE99" }, panel);
+    const rows = (seg.points || []).slice(0, 4);
+    const R = rows.map((p, i) => {
+      const y = 390 + i * (rows.length > 3 ? 150 : 172);
+      const g = el("g", {}, host);
+      const badge = el("g", {}, g);
+      el("circle", { cx: 360, cy: y - 22, r: 44, fill: "#F5813C", stroke: INK, "stroke-width": 8 }, badge);
+      txt(badge, String(i + 1), 360, y - 6, 46, CREAM, 800);
+      // 要点前面不再挂图标：水滴/波浪/太阳这些通用符号和要点内容无关，
+      // 放着只是占位置，还会让每集看起来一模一样。序号已经足够。
+      const t = wrapTxt(g, p.text || "", 460, y, 46, INK, 600, 28, 60, "start");
+      return { g, at: p.at != null ? p.at : 0.12 + i * 0.16 };
+    });
+    return (tt, u) => {
+      panel.setAttribute("opacity", easeOut(u / 0.06));
+      panel.setAttribute("transform", `translate(0 ${lerp(20, 0, easeOut(u / 0.1))})`);
+      R.forEach((r, i) => {
+        const k = clamp((u - r.at) / 0.1, 0, 1);
+        r.g.setAttribute("opacity", k);
+        r.g.setAttribute("transform", `translate(${lerp(-40, 0, easeBack(k))} ${lerp(16, 0, easeOut(k))})`);
+      });
+    };
+  }
+};
+
+/* ---------- quiz：考考考你（三选项 + 揭晓） ---------- */
+SCENES.quiz = {
+  mount(host, seg) {
+    const head = el("g", {}, host);
+    el("rect", { x: 264, y: 104, width: 1400, height: 150, rx: 44,
+                 fill: INK, opacity: 0.20, style: "filter:blur(18px)" }, head);
+    el("rect", { x: 260, y: 96, width: 1400, height: 150, rx: 44, fill: "#3C7DB5", stroke: INK, "stroke-width": 12 }, head);
+    // 垂直居中：框中心是 y=171，文字基线要落在「中心 + 字号×0.35」，
+    // 多行时再把整体上移半个行距。写死一个 152 会让题目贴着上沿。
+    const qLines = wrapTxt(head, seg.q || "你猜是哪个？", 960, 171, 62, CREAM, 700, 18, 68, "middle");
+    const qBase = 171 + 62 * 0.35 - (qLines.length - 1) * 68 / 2;
+    qLines.forEach((t, i) => t.setAttribute("y", qBase + i * 68));
+
+    const opts = (seg.options || []).slice(0, 3);
+    const O = opts.map((o, i) => {
+      const y = 306 + i * 200;
+      const g = el("g", {}, host);
+      // 必须全不透明：0.96 会让室内的窗户/桌椅隐约透出来，选项看着发脏
+      const box = el("rect", { x: 380, y: y, width: 1160, height: 152, rx: 40, fill: CREAM,
+                               stroke: INK, "stroke-width": 11 }, g);
+      const tag = el("circle", { cx: 470, cy: y + 76, r: 44, fill: "#F5813C", stroke: INK, "stroke-width": 8 }, g);
+      txt(g, "ABC"[i], 470, y + 92, 46, CREAM, 800);
+      const label = txt(g, o, 570, y + 92, 46, INK, 600, "start");
+      const ok = el("g", { opacity: 0 }, g);
+      el("circle", { cx: 1470, cy: y + 76, r: 44, fill: "#5FB32F", stroke: INK, "stroke-width": 8 }, ok);
+      el("path", { d: `M 1448 ${y + 76} l 15 17 l 26 -32`, fill: "none", stroke: CREAM,
+                   "stroke-width": 10, "stroke-linecap": "round", "stroke-linejoin": "round" }, ok);
+      return { g, box, ok, at: 0.08 + i * 0.1, ans: i === (seg.answer | 0) };
+    });
+    // 揭晓要压在「选项读完之后」：默认 0.82。
+    // 之前是 0.62，题目和选项还没念完答案就变绿了，观众等于先看到结论
+    const rev = seg.revealAt != null ? seg.revealAt : 0.82;
+    return (tt, u) => {
+      head.setAttribute("opacity", easeOut(u / 0.06));
+      O.forEach(o => {
+        const k = clamp((u - o.at) / 0.09, 0, 1);
+        o.g.setAttribute("opacity", k);
+        o.g.setAttribute("transform", `translate(${lerp(60, 0, easeBack(k))} 0)`);
+        const on = u > rev;
+        o.box.setAttribute("fill", on && o.ans ? "#E9F8D8" : CREAM);
+        o.box.setAttribute("stroke-width", on && o.ans ? 18 : 11);
+        o.box.setAttribute("stroke", on && o.ans ? "#5FB32F" : INK);
+        o.g.setAttribute("opacity", (on && !o.ans) ? 0.42 : k);
+        o.ok.setAttribute("opacity", on && o.ans ? 1 : 0);
+      });
+    };
+  }
+};
+
+/* ---------- outro：结尾 ---------- */
+SCENES.outro = {
+  mount(host, seg) {
+    const c = castChars(host, {
+      // feet 不能贴到 1080：镜头会放大 3–6%，脚一超就被裁掉。留 60px 余量
+      kaoX: 430, xiX: 1490, feet: 1016, kaoScale: 0.86, xiScale: 1.24,
+      kaoExpr: seg.kaoExpr || "silly",
+      xiView: seg.xiView || "front", xiExpr: seg.xiExpr || "happy", xiTail: seg.xiTail || "glow",
+    });
+    const g = el("g", {}, host);
+    el("rect", { x: 564, y: 238, width: 800, height: 190, rx: 46,
+                 fill: INK, opacity: 0.22, style: "filter:blur(20px)" }, g);
+    el("rect", { x: 560, y: 230, width: 800, height: 190, rx: 46, fill: CREAM, stroke: INK, "stroke-width": 12, opacity: 0.98 }, g);
+    wrapTxt(g, seg.line1 || "下集见！", 960, 310, 62, "#B4551F", 700, 12, 74, "middle");
+    if (seg.line2) txt(g, seg.line2, 960, 386, 36, "#6B5942", 500);
+    // 下集预告是可选的：不给 next 就只留告别卡，不画蓝条
+    const nx = (seg.next || "").trim();
+    const next = nx ? el("g", {}, host) : null;
+    if (next) {
+      // 条宽跟着字走，否则长一点的下集标题会顶出蓝条
+      const nw = clamp(nx.length * 44 + 120, 620, 1500);
+      el("rect", { x: 960 - nw / 2, y: 470, width: nw, height: 118, rx: 34, fill: "#3C7DB5", stroke: INK, "stroke-width": 11 }, next);
+      txt(next, nx, 960, 546, 42, CREAM, 600);
+    }
+    return (tt, u) => {
+      const k = easeBack(clamp(u / 0.14, 0, 1));
+      g.setAttribute("transform", `translate(960 340) scale(${lerp(0.8, 1, k)}) translate(-960 -340)`);
+      g.setAttribute("opacity", clamp(u / 0.08, 0, 1));
+      if (next) {
+        next.setAttribute("opacity", clamp((u - 0.12) / 0.1, 0, 1));
+        next.setAttribute("transform", `translate(0 ${lerp(24, 0, easeOut((u - 0.12) / 0.12))})`);
+      }
+      c.kaoG.setAttribute("transform", `translate(${c.kx} ${c.feet + Math.sin(tt * 3) * 10}) scale(${c.KS})`);
+      c.xiG.setAttribute("transform", `translate(${c.xx} ${c.feet + Math.sin(tt * 3 + 1) * 12}) scale(${c.XS})`);
+    };
+  }
+};
+
+/* ==================================================================
+   时间线装配
+================================================================== */
+const world = document.getElementById("world");
+const subEls = [document.getElementById("sub0"), document.getElementById("sub1")];
+const postGrade = document.getElementById("postGrade");
+const postVig = document.getElementById("postVig");
+let SEGS = [], TOTAL = 0;
+
+window.setTimeline = function (tl) {
+  SEGS = (tl.segments || []).slice();
+  TOTAL = SEGS.reduce((a, s) => a + s.dur, 0);
+  let t0 = 0;
+  world.innerHTML = "";
+  SEGS.forEach((seg, i) => {
+    seg.start = t0; t0 += seg.dur;
+    const host = el("g", { class: "scene", opacity: 0 }, world);
+    const bgRoot = el("g", { "data-crisp-tree": "1" }, host);   // 背景整棵保留矢量：渐变 + 图案太大，手绘档会糊
+    const bgFn = BG[seg.bg] || BG.meadow_day;
+    const bgUpdate = bgFn(bgRoot, seg);
+    const content = el("g", {}, host);
+    ROUGHING = ROUGH;
+    SEED = ROUGH_SEED + i * 37;
+    const sc = (SCENES[seg.type] || SCENES.talk).mount(content, seg);
+    ROUGHING = false;
+    seg.__host = host;
+    seg.__update = sc;
+    seg.__bgUpdate = bgUpdate;
+    seg.__prof = (BG[seg.bg] || BG.meadow_day).prof || { grade: 0.04, vig: 0.12 };
+  });
+  // 氛围层：全片建一份，浓度跟着当前段的背景走
+  const atmo = document.getElementById("atmo");
+  atmo.innerHTML = "";
+  ATMO.bokeh = [];
+  ATMO.dust = [];
+  // 先铺主光与薄雾（在光斑/浮尘之下）
+  ATMO.key = el("ellipse", { cx: 210, cy: 40, rx: 1080, ry: 840,
+                             fill: "url(#gKeyLight)", opacity: 0 }, atmo);
+  ATMO.haze = el("rect", { x: 0, y: 600, width: W, height: 480,
+                           fill: "url(#gHaze)", opacity: 0 }, atmo);
+  for (let i = 0; i < 5; i++) {
+    const r = 54 + rnd(i * 3.3) * 86;
+    const c = el("circle", { cx: 0, cy: 0, r, fill: "url(#gBokeh)", opacity: 0 }, atmo);
+    ATMO.bokeh.push({
+      n: c, x: rnd(i * 5.7) * W, y: 80 + rnd(i * 7.1) * 900,
+      vx: (rnd(i * 2.1) - 0.5) * 9, vy: -4 - rnd(i * 4.3) * 7,
+      ph: rnd(i * 6.1) * 6.28, r,
+    });
+  }
+  for (let i = 0; i < 22; i++) {
+    const c = el("circle", { cx: 0, cy: 0, r: 1.2 + rnd(i * 4.7) * 2.2,
+                             fill: "#FFFFFF", opacity: 0 }, atmo);
+    ATMO.dust.push({
+      n: c, x: rnd(i * 3.9) * W, y0: rnd(i * 6.3) * H,
+      sp: 9 + rnd(i * 5.1) * 16, sway: 6 + rnd(i * 2.7) * 12,
+      ph: rnd(i * 7.3) * 6.28,
+    });
+  }
+  ATMO.node = atmo;
+  ATMO.bg = null;
+
+  window.__total = TOTAL;
+  return TOTAL;
+};
+
+// 叠化时长。不能长：两个整屏背景各出一半透明度会「双曝光」，画面发灰。
+// 0.16s ≈ 5 帧，足够消掉硬切的顿挫，又不至于看清两张画面叠在一起。
+const FADE = 0.16;
+
+function activeIndex(t) {
+  for (let i = 0; i < SEGS.length; i++) {
+    const s = SEGS[i];
+    if (t >= s.start - FADE && t <= s.start + s.dur + FADE) return i;
+  }
+  return t < 0 ? 0 : SEGS.length - 1;
+}
+
+window.renderFrame = function (t) {
+  const ai = activeIndex(t);
+  let grade = 0, vig = 0;
+  for (let i = 0; i < SEGS.length; i++) {
+    const s = SEGS[i];
+    // 「盖上去」而不是「两边一起半透明」：后一场在完全透明的前一场上面渐显。
+    // 两边同时降到 50% 会让画面往底色塌，中间那几帧发灰（双曝光）。
+    const vis = t >= s.start - 0.001 && t < s.start + s.dur + FADE;
+    const o = vis ? (i === 0 ? 1 : clamp((t - s.start) / FADE, 0, 1)) : 0;
+    s.__host.setAttribute("opacity", vis ? o : 0);
+    s.__host.setAttribute("display", vis ? "inline" : "none");
+    if (vis) {
+      const tt = clamp(t - s.start, -0.5, s.dur + 0.5);
+      const u = clamp((t - s.start) / s.dur, 0, 1);
+      // 镜头：慢推到目标构图 + 两个不同频率的正弦漂移，避免看出规律
+      const cam = CAMERA[s.type] || CAMERA.talk;
+      const cs = lerp(cam.from, cam.to, easeOutExpo(u));
+      const dx = Math.sin(tt * 0.33 + i * 2.3) * cam.drift;
+      const dy = Math.cos(tt * 0.27 + i * 1.7) * cam.drift * 0.55;
+      s.__host.setAttribute("transform",
+        `translate(${960 + dx} ${540 + dy}) scale(${cs}) translate(-960 -540)`);
+      s.__update(tt, u);
+      if (s.__bgUpdate) s.__bgUpdate(t);
+      if (o > (grade || 0)) { grade = s.__prof.grade * o; vig = s.__prof.vig * o; }
+    }
+  }
+  postGrade.setAttribute("opacity", grade);
+  postVig.setAttribute("opacity", vig);
+
+  // 氛围层：光斑缓慢横漂 + 浮尘向上循环，浓度按当前背景
+  const curSeg = SEGS[ai];
+  const bgName = curSeg ? curSeg.bg : "meadow_day";
+  const aop = ATMO_OP[bgName] != null ? ATMO_OP[bgName] : 0.12;
+  // 主光轻微呼吸，别死板地一直亮着
+  const kop = (KEY_OP[bgName] != null ? KEY_OP[bgName] : 0.5) * (0.92 + 0.08 * Math.sin(t * 0.7));
+  ATMO.key.setAttribute("opacity", kop);
+  // 光晕位置必须和背景里的光源对齐（太阳/月亮/天窗各在不同角落），否则一眼假
+  if (ATMO.bg !== bgName) {
+    ATMO.bg = bgName;
+    const LP = (BG[bgName] && BG[bgName].light) || { x: 210, y: 40 };
+    ATMO.key.setAttribute("cx", LP.x);
+    ATMO.key.setAttribute("cy", LP.y);
+  }
+  ATMO.haze.setAttribute("opacity", HAZE_OP[bgName] || 0);
+  const WX = W + 420, HY = H + 320;
+  ATMO.bokeh.forEach(b => {
+    const x = ((b.x + b.vx * t + Math.sin(t * 0.11 + b.ph) * 55) % WX + WX) % WX - 210;
+    const y = ((b.y + b.vy * t) % HY + HY) % HY - 160;
+    b.n.setAttribute("cx", x);
+    b.n.setAttribute("cy", y);
+    b.n.setAttribute("opacity", aop * (0.5 + 0.5 * Math.abs(Math.sin(t * 0.5 + b.ph))));
+  });
+  ATMO.dust.forEach(d => {
+    const y = ((d.y0 - t * d.sp) % HY + HY) % HY - 100;
+    d.n.setAttribute("cx", d.x + Math.sin(t * 0.6 + d.ph) * d.sway);
+    d.n.setAttribute("cy", y);
+    d.n.setAttribute("opacity", aop * 1.15 * (0.3 + 0.7 * Math.abs(Math.sin(t * 0.8 + d.ph))));
+  });
+
+  // 字幕：build.py 已按句子切好（subs: [{t, lines}]），这里只挑当前一条
+  // 硬规则：告别卡/题目/歌词板/片头这类文字已经整块画在画面上，绝不再走底部字幕框。
+  // 放在渲染层兜底，这样即使台本误填了 text→sub，也不会出现「下次见」又说又打字幕。
+  const NO_SUB = { outro: 1, quiz: 1, song: 1, title: 1 };
+  const s = SEGS[ai];
+  let active = null, k = 0;
+  if (s && !NO_SUB[s.type] && s.subs && s.subs.length) {
+    const lt = t - s.start;
+    for (const e of s.subs) if (lt >= e.t) active = e;
+    if (active) {
+      k = clamp((lt - active.t) / 0.12, 0, 1) * clamp((s.start + s.dur - 0.12 - t) / 0.3, 0, 1);
+      active.lines.slice(0, 2).forEach((ln, i) => { subEls[i].textContent = ln; });
+      if (active.lines.length === 1) subEls[1].textContent = "";
+    }
+  }
+  subEls.forEach(e => e.setAttribute("opacity", k));
+};
+
+/* ==================================================================
+   每集自带场景代码的接口
+   --------------------------------------------------------------
+   不走「背景库 + 话题映射」。每一集按自己的话题和每段文案，
+   在 epXX/scenery.js 里现场用代码画场景，注册到 BG 上：
+
+     SCENE_KIT.scene("太空", (root, seg) => {
+       SCENE_KIT.rect(root, ...);      // 天空
+       SCENE_KIT.planet(root, 1500, 300);
+       return (t) => { ... };           // 可选：每帧更新
+     });
+
+   然后台本里这段写 "bg": "太空"。
+   引擎在 setTimeline 时按名字找 BG[seg.bg]，找不到才退回兜底背景。
+   ================================================================== */
+/* 拟人化五官：给任意图形按上眼睛和嘴，物体立刻「活」起来。
+   参考片里瓶子、冰块、蚊子都有表情——这是最便宜也最有效的「生动」来源。 */
+function faceKit(parent, x, y, r, expr) {
+  const g = el("g", { transform: `translate(${x} ${y})` }, parent);
+  const er = r * 0.4, dy = -r * 0.16;
+  const eye = (dx) => {
+    const e = el("g", {}, g);
+    if (expr === "shock") {
+      el("circle", { cx: dx, cy: dy, r: er * 1.08, fill: "#FFFFFF", stroke: INK, "stroke-width": r * 0.05 }, e);
+      el("circle", { cx: dx, cy: dy + r * 0.02, r: er * 0.38, fill: INK }, e);
+      return;
+    }
+    el("circle", { cx: dx, cy: dy, r: er, fill: "#FFFFFF", stroke: INK, "stroke-width": r * 0.05 }, e);
+    el("circle", { cx: dx + r * 0.05, cy: dy + r * 0.03, r: er * 0.52, fill: INK }, e);
+    el("circle", { cx: dx + r * 0.14, cy: dy - r * 0.07, r: er * 0.17, fill: "#FFFFFF" }, e);
+  };
+  eye(-r * 0.44); eye(r * 0.44);
+  if (expr === "shock") {
+    el("ellipse", { cx: 0, cy: r * 0.44, rx: r * 0.18, ry: r * 0.24,
+                    fill: "#7A2B2B", stroke: INK, "stroke-width": r * 0.05 }, g);
+  } else if (expr === "smile") {
+    el("path", { d: `M ${-r * 0.3} ${r * 0.3} q ${r * 0.3} ${r * 0.3} ${r * 0.6} 0`,
+                 fill: "none", stroke: INK, "stroke-width": r * 0.07, "stroke-linecap": "round" }, g);
+  } else {
+    el("ellipse", { cx: 0, cy: r * 0.38, rx: r * 0.1, ry: r * 0.12, fill: "#7A2B2B" }, g);
+  }
+  return g;
+}
+
+window.SCENE_KIT = {
+  BG,
+  scene(name, fn) { BG[name] = fn; return fn; },   // 注册一段场景（背景）
+  figure(name, fn) { FIGURES[name] = fn; return fn; },  // 注册一个具体对象（前景绘制）
+  el, txt, wrapTxt, rnd, nearSil, clamp, lerp, faceKit,
+  W, H, INK, CREAM, NS,
+  // 常用渐变 id，直接写 fill: "url(#gSkyDay)" 即可
+  G: {
+    skyDay: "url(#gSkyDay)", skyNight: "url(#gSkyNight)", under: "url(#gUnder)",
+    forest: "url(#gForest)", skyHigh: "url(#gSkyHigh)", room: "url(#gRoom)",
+    storm: "url(#gStorm)", micro: "url(#gMicro)", gold: "url(#gGold)", sun: "url(#gSun)",
+  },
+};
+</script>
+</body>
+</html>

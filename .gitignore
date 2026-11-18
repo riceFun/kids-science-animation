@@ -1,0 +1,8 @@
+.DS_Store
+*.pyc
+__pycache__/
+assets/example/audio/
+assets/example/frames/
+assets/example/frames_draft/
+assets/example/out/
+assets/example/timeline.json
