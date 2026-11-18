@@ -1851,11 +1851,77 @@ function faceKit(parent, x, y, r, expr) {
   return g;
 }
 
+/* ---------- 精细绘制：渐变 / 裁剪 ----------
+   拼基本图形（椭圆当身体、矩形当腿）永远画不细。要精细就得：
+   轮廓用路径、体积用渐变、局部用裁剪、细节另起一层。
+   下面三个函数是这套画法的最小工具集。
+------------------------------------------------------------------------- */
+function _defs() {
+  let d = document.getElementById("dyn-defs");
+  if (!d) {
+    d = document.createElementNS(NS, "defs");
+    d.setAttribute("id", "dyn-defs");
+    document.getElementById("stage").prepend(d);
+  }
+  return d;
+}
+function grad(id, stops, o) {
+  const opt = o || {};
+  if (document.getElementById(id)) return `url(#${id})`;
+  const g = document.createElementNS(NS, "linearGradient");
+  g.setAttribute("id", id);
+  g.setAttribute("x1", opt.x1 != null ? opt.x1 : 0);
+  g.setAttribute("y1", opt.y1 != null ? opt.y1 : 0);
+  g.setAttribute("x2", opt.x2 != null ? opt.x2 : 0);
+  g.setAttribute("y2", opt.y2 != null ? opt.y2 : 1);
+  (stops || []).forEach(([off, col, op]) => {
+    const st = document.createElementNS(NS, "stop");
+    st.setAttribute("offset", off);
+    st.setAttribute("stop-color", col);
+    if (op != null) st.setAttribute("stop-opacity", op);
+    g.appendChild(st);
+  });
+  _defs().appendChild(g);
+  return `url(#${id})`;
+}
+function rgrad(id, stops, o) {
+  const opt = o || {};
+  if (document.getElementById(id)) return `url(#${id})`;
+  const g = document.createElementNS(NS, "radialGradient");
+  g.setAttribute("id", id);
+  g.setAttribute("cx", opt.cx != null ? opt.cx : 0.5);
+  g.setAttribute("cy", opt.cy != null ? opt.cy : 0.4);
+  g.setAttribute("r", opt.r != null ? opt.r : 0.7);
+  (stops || []).forEach(([off, col, op]) => {
+    const st = document.createElementNS(NS, "stop");
+    st.setAttribute("offset", off);
+    st.setAttribute("stop-color", col);
+    if (op != null) st.setAttribute("stop-opacity", op);
+    g.appendChild(st);
+  });
+  _defs().appendChild(g);
+  return `url(#${id})`;
+}
+/** 把一组图形裁进一个路径里：条纹、毛流必须贴合身体轮廓时用 */
+function clipTo(id, d) {
+  let cp = document.getElementById(id);
+  if (!cp) {
+    cp = document.createElementNS(NS, "clipPath");
+    cp.setAttribute("id", id);
+    _defs().appendChild(cp);
+  }
+  const p = document.createElementNS(NS, "path");
+  p.setAttribute("d", d);
+  cp.appendChild(p);
+  return `url(#${id})`;
+}
+
 window.SCENE_KIT = {
   BG,
   scene(name, fn) { BG[name] = fn; return fn; },   // 注册一段场景（背景）
   figure(name, fn) { FIGURES[name] = fn; return fn; },  // 注册一个具体对象（前景绘制）
   el, txt, wrapTxt, rnd, nearSil, clamp, lerp, faceKit,
+  grad, rgrad, clipTo,
   W, H, INK, CREAM, NS,
   // 常用渐变 id，直接写 fill: "url(#gSkyDay)" 即可
   G: {
