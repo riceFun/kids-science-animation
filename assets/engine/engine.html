@@ -1054,6 +1054,14 @@ SCENES.title = {
         k.setAttribute("stroke", CREAM); k.setAttribute("stroke-width", 12);
         k.setAttribute("paint-order", "stroke fill");
       }
+      /* 封面必须有考考和小熹：小朋友靠这两个角色认频道。
+         站位在左下，脚落到画面外只露上半身，抬头看右上主体，不压标题也不挡主体。 */
+      const c = seg.chars === false ? null : castChars(host, {
+        kaoX: seg.kaoX || 400, xiX: seg.xiX || 1470, feet: seg.feet || 1102,
+        kaoScale: seg.kaoScale || 0.86, xiScale: seg.xiScale || 1.56,
+        kaoExpr: seg.kaoExpr || "wow",
+        xiView: seg.xiView || "front", xiExpr: seg.xiExpr || "happy", xiTail: seg.xiTail || "wag",
+      });
       return (tt, u) => {
         const k = easeOut(clamp(u / 0.12, 0, 1));
         hero.setAttribute("opacity", k);
@@ -1063,6 +1071,17 @@ SCENES.title = {
         head.setAttribute("opacity", easeOut(clamp((u - 0.04) / 0.12, 0, 1)));
         head.setAttribute("transform", `translate(0 ${lerp(26, 0, easeOut(clamp((u - 0.04) / 0.14, 0, 1)))})`);
         brand.setAttribute("opacity", easeOut(clamp(u / 0.12, 0, 1)));
+        if (c) {
+          // 从画面下沿升起来，比直接淡入更像「出场」
+          const rise = lerp(70, 0, easeOut(clamp(u / 0.26, 0, 1)));
+          const bob = Math.sin(tt * 2.0) * 6;
+          c.kaoG.setAttribute("transform",
+            `translate(${c.kx} ${c.feet + rise}) scale(${c.KS})`);
+          c.xiG.setAttribute("transform",
+            `translate(${c.xx} ${c.feet + rise + bob}) scale(${c.XS})`);
+          if (c.xi.__mouth) animMouth(c.xi.__mouth, -125, false, tt, 15);
+          if (c.kao.__eyes) blink(c.kao.__eyes, tt, 3);
+        }
       };
     }
 
