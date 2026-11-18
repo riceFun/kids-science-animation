@@ -80,6 +80,9 @@ async function shutdown(browser) {
   const q = ROUGH ? '?style=rough' : '';
   await page.goto('file://' + path.resolve(enginePath) + q, { waitUntil: 'load' });
   await page.evaluate(() => document.fonts.ready);
+  // 先定语言：每集 scenery.js 里的标签用 K.L(中文, 西语) 选词
+  await page.evaluate(l => { window.__LANG = l; },
+                      (tl.segments && tl.segments[0] && tl.segments[0].lang) || 'es');
   // 非 16:9 画布（如 4:3 封面）必须在注册场景前改好，场景挂载时才拿得到正确的 W/H
   if (CW !== 1920 || CH !== 1080) {
     await page.evaluate((w, h) => window.setCanvas(w, h), CW, CH);

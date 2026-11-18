@@ -1265,12 +1265,42 @@ SCENES.talk = {
       // 左右各留 70px 内边距。之前 20 字的气泡会把文字顶到描边上，看着像被框切了一刀
       // 西语按字符算宽度，中文按字数：拉丁字母窄，同一个 42 会让气泡宽出一倍
       const es = seg.lang === "es";
-      const bw = clamp(seg.say.length * (es ? 22 : 42) + 180, 380, es ? 940 : 880);
       const fs = es ? 36 : 42;
-      const maxChars = Math.max(6, Math.floor((bw - 140) / fs));
-      const nLines = Math.max(1, Math.ceil(seg.say.length / maxChars));
-      const lh = 54;
-      const bh = 96 + nLines * lh;
+      const MAXW = es ? 880 : 820;          // 文本区最大宽度
+      // 实测字宽：拉丁字母宽度差很多（"iii" 和 "mmm" 差三倍），按字符数估一定失准
+      const _st = document.getElementById("stage");
+      const measure = (str) => {
+        const t = document.createElementNS(NS, "text");
+        t.setAttribute("font-size", fs);
+        t.setAttribute("font-weight", 700);
+        t.setAttribute("font-family", getComputedStyle(_st).fontFamily || "sans-serif");
+        t.textContent = str;
+        t.setAttribute("opacity", "0");
+        _st.appendChild(t);
+        const w = t.getComputedTextLength() || str.length * fs * 0.95;
+        t.remove();
+        return w;
+      };
+      // 折行：西语按词，中文按字
+      const rawWords = seg.say.split(/\s+/);
+      const linesOf = [];
+      if (es) {
+        let cur = "";
+        for (const w of rawWords) {
+          const cand = cur ? cur + " " + w : w;
+          if (measure(cand) <= MAXW || !cur) cur = cand;
+          else { linesOf.push(cur); cur = w; }
+        }
+        if (cur) linesOf.push(cur);
+      } else {
+        const per = Math.max(6, Math.floor(MAXW / fs));
+        for (let i = 0; i < seg.say.length; i += per) linesOf.push(seg.say.slice(i, i + per));
+      }
+      const textW = linesOf.reduce((m, l) => Math.max(m, measure(l)), 1);
+      const bw = clamp(textW + 120, 300, MAXW + 120);
+      const nLines = Math.max(1, linesOf.length);
+      const lh = es ? 48 : 54;
+      const bh = 84 + nLines * lh;
       const bx = seg.sayX || (close ? 960 : (onLeft ? 452 : 1468));
       const by = seg.sayY || (close ? 180 : 286);
 
@@ -1293,7 +1323,10 @@ SCENES.talk = {
                    fill: CREAM, stroke: INK, "stroke-width": 9, "stroke-linejoin": "round" }, say);
       el("rect", { x: tx - 34, y: ty - 16, width: 68, height: 20, fill: CREAM }, say);
 
-      wrapTxt(say, seg.say, 0, -(nLines - 1) * lh / 2 + 15, fs, INK, 700, maxChars, lh, "middle");
+      // 用已经折好的行来渲染：气泡宽度就是照这些行量出来的，不能让它再自动折一次
+      linesOf.forEach((ln, i) => {
+        txt(say, ln, 0, -(nLines - 1) * lh / 2 + 14 + i * lh, fs, INK, 700, "middle");
+      });
       // 入场：从说话者那一侧弹进来，带一点方向感
       const dir = onLeft ? -1 : 1;
       say.setAttribute("transform",
@@ -1362,14 +1395,13 @@ SCENES.song = {
     el("circle", { cx: 424, cy: 292, r: 6, fill: "#D3BE99" }, card);
     el("circle", { cx: 1472, cy: 292, r: 6, fill: "#D3BE99" }, card);
 
-    const half = Math.ceil(lines.length / 2);
-    // 列距跟着最长句走：固定 620/1300 时空隙近 250px，歌词像被撕成两半；
-    // 按「最长高亮条 + 40px 呼吸」动态居中，既收紧又不会让长句两列重叠。
+    // 单列居中：4–6 句最舒服，句数多就自动压行高和字号，绝不让歌词溢出卡片
+    const n = Math.max(1, lines.length);
+    const areaTop = 330, areaBot = 872;
+    const lineH = Math.min(118, (areaBot - areaTop) / n);
+    const fs = Math.max(34, Math.min(52, Math.floor(lineH * 0.5)));
     const maxLen = lines.reduce((m, s) => Math.max(m, s.length), 1);
-    const colGap = maxLen * 46 + 64 + 40;
-    const leftX = 948 - colGap / 2, rightX = 948 + colGap / 2;
-    const rows = [];
-    // 先算总分再分段：边遍历边除会让每一段的终点都变成 1，第一句永远高亮
+    const barW = Math.min(1180, maxLen * fs * 0.92 + 80);
     const total = lines.reduce((a, s) => a + s.length, 0) || 1;
     let acc = 0;
     const cues = lines.map(s => {
@@ -1377,16 +1409,14 @@ SCENES.song = {
       acc += s.length;
       return { st, en: acc / total };
     });
+    const rows = [];
     lines.forEach((s, i) => {
-      const col = i < half ? 0 : 1;
-      const x = col === 0 ? leftX : rightX;
-      const y = 400 + (i % half) * 128;
+      const x = 948;
+      const y = areaTop + lineH * (i + 0.5) + fs * 0.34;
       const g = el("g", {}, host);
-      // 高亮条跟着句子长度走：固定宽度会让短句看起来像被人用荧光笔乱涂了一道
-      const w = s.length * 46 + 64;
-      const hl = el("rect", { x: x - w / 2, y: y - 52, width: w, height: 84, rx: 24,
+      const hl = el("rect", { x: x - barW / 2, y: y - fs * 0.95, width: barW, height: fs * 1.5, rx: 22,
                               fill: "#FFD34D", opacity: 0 }, g);
-      const t = txt(g, s, x, y, 46, INK, 700);
+      const t = txt(g, s, x, y, fs, INK, 700);
       rows.push({ g, hl, t, i });
     });
 
@@ -1873,6 +1903,11 @@ function faceKit(parent, x, y, r, expr) {
    轮廓用路径、体积用渐变、局部用裁剪、细节另起一层。
    下面三个函数是这套画法的最小工具集。
 ------------------------------------------------------------------------- */
+/* 场景内的文字也要跟语言走：西语版里出现中文标签，就是这里漏了。
+   sc enery.js 里写 K.L("中文", "Español")，render.js 会先设好 window.__LANG。 */
+window.__LANG = "es";
+function L(zh, es) { return window.__LANG === "zh" ? zh : es; }
+
 function _defs() {
   let d = document.getElementById("dyn-defs");
   if (!d) {
@@ -1938,7 +1973,7 @@ window.SCENE_KIT = {
   scene(name, fn) { BG[name] = fn; return fn; },   // 注册一段场景（背景）
   figure(name, fn) { FIGURES[name] = fn; return fn; },  // 注册一个具体对象（前景绘制）
   el, txt, wrapTxt, rnd, nearSil, clamp, lerp, faceKit,
-  grad, rgrad, clipTo,
+  grad, rgrad, clipTo, L,
   W, H, INK, CREAM, NS,
   // 常用渐变 id，直接写 fill: "url(#gSkyDay)" 即可
   G: {
