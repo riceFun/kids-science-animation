@@ -35,7 +35,8 @@ CACHE = {}
 # 为什么不给小熹用 Xiaoxiao：成年女声抬高会变成"阿姨假声"，共振峰不跟着走。
 # 为什么考考不做大比例 shift：童声本来就对，抬多了像花栗鼠。
 # ------------------------------------------------------------------
-VOICES = {
+# 中文：Yunxia 童声 / Xiaoyi 少女 / Yunxi 旁白
+VOICES_ZH = {
     "narrator": {
         "voice": "zh-CN-YunxiNeural", "rate": "-5%", "pitch": "+0Hz", "shift": 1.00,
         "fallback": ["zh-CN-YunyangNeural"],
@@ -45,14 +46,50 @@ VOICES = {
         "fallback": ["zh-CN-YunxiNeural"],
     },
     "xi": {
-        # 用晓晓 + 只抬 1.14：音高比 Xiaoyi 方案低一档（约 313 Hz），
-        # 但齿音干净。试听对比后选它——4 分钟的片子，耐听比「够卡通」重要
         "voice": "zh-CN-XiaoxiaoNeural", "rate": "+6%", "pitch": "+10Hz", "shift": 1.14,
-        # 降级链要保持接近的音高：Xiaoyi 基频比晓晓高 60Hz，所以用原声不再抬
         "fallback": [("zh-CN-XiaoyiNeural", {"shift": 1.00, "pitch": "+0Hz"}),
                      ("zh-CN-YunxiaNeural", {"shift": 1.20})],
     },
 }
+
+# 西语（墨西哥）：es-MX 只有两个音色，靠 rate/pitch 拉开角色
+#   旁白 = Jorge 原声（沉稳）
+#   考考 = Jorge 升 +45Hz（男童感，不做 shift，避免共振峰失真）
+#   小熹 = Dalia 升 +25Hz（女童/幼兽感）
+# 实测语速：旁白 11.9 字符/秒，童声 13.2–13.5 字符/秒（含空格）
+VOICES_ES = {
+    "narrator": {
+        "voice": "es-MX-JorgeNeural", "rate": "-5%", "pitch": "+0Hz", "shift": 1.00,
+        "fallback": ["es-MX-DaliaNeural"],
+    },
+    "kao": {
+        "voice": "es-MX-JorgeNeural", "rate": "+8%", "pitch": "+45Hz", "shift": 1.00,
+        "fallback": [("es-MX-JorgeNeural", {"pitch": "+35Hz"})],
+    },
+    "xi": {
+        "voice": "es-MX-DaliaNeural", "rate": "+6%", "pitch": "+25Hz", "shift": 1.00,
+        "fallback": [("es-MX-DaliaNeural", {"pitch": "+15Hz"})],
+    },
+}
+
+LANGS = {"zh": VOICES_ZH, "es": VOICES_ES}
+LANG = "es"          # 默认西语（墨西哥）
+VOICES = {}          # 当前语言的音色表，set_lang() 时原地更新，保持引用有效
+
+
+def set_lang(lang):
+    """切换配音语言。build.py --lang 会调它；默认 es（墨西哥西语）。"""
+    global LANG, VOICES
+    lang = (lang or "es").lower()
+    if lang not in LANGS:
+        raise ValueError(f"不支持的语言：{lang}（可选 {', '.join(LANGS)}）")
+    LANG = lang
+    VOICES.clear()
+    VOICES.update({k: dict(v) for k, v in LANGS[lang].items()})
+    return VOICES
+
+
+set_lang(LANG)
 
 
 def _run(cmd):

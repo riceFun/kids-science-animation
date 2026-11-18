@@ -291,7 +291,19 @@ function wrapTxt(parent, str, x, y, size, fill, weight, maxChars, lh, anchor) {
   const raw = String(str).split("\n");
   for (const r of raw) {
     if (r.length <= maxChars) { lines.push(r); continue; }
-    // 优先在标点处断
+    // 带空格的文字（西语等）必须按词断，不能按字符硬切——
+    // 硬切会把 "más" 切成 "m / ás"，看起来像乱码
+    if (r.includes(" ")) {
+      let buf2 = "";
+      for (const w of r.split(/\s+/)) {
+        if (!buf2) { buf2 = w; }
+        else if ((buf2 + " " + w).length <= maxChars) { buf2 += " " + w; }
+        else { lines.push(buf2); buf2 = w; }
+      }
+      if (buf2) lines.push(buf2);
+      continue;
+    }
+    // 中文：优先在标点处断
     let buf = "";
     for (const ch of r) {
       buf += ch;
@@ -1036,7 +1048,7 @@ SCENES.title = {
 
       const M = 104;                       // 安全边距
       const brand = el("g", {}, host);
-      const b = txt(brand, seg.brand || "考考&小熹", M, 118, 44, INK, 800, "start");
+      const b = txt(brand, seg.brand || "kaokao&xiaoxi", M, 118, 44, INK, 800, "start");
       b.setAttribute("stroke", CREAM); b.setAttribute("stroke-width", 11);
       b.setAttribute("stroke-linejoin", "round"); b.setAttribute("paint-order", "stroke fill");
       el("path", { d: `M ${M} 148 H ${M + 300}`, stroke: CREAM, "stroke-width": 9, "stroke-linecap": "round" }, brand);
@@ -1102,7 +1114,7 @@ SCENES.title = {
     // 品牌退到左上角当台标，标题占据画面中心。
     // 原来品牌压在中间的大蓝卡上、标题被挤到右边，观众第一眼不知道这集讲什么
     const brand = el("g", {}, host);
-    const b = txt(brand, seg.brand || "考考&小熹", 138, 112, 50, INK, 800, "start");
+    const b = txt(brand, seg.brand || "kaokao&xiaoxi", 138, 112, 50, INK, 800, "start");
     b.setAttribute("stroke", CREAM);
     b.setAttribute("stroke-width", 11);
     b.setAttribute("stroke-linejoin", "round");
@@ -1111,7 +1123,9 @@ SCENES.title = {
     el("path", { d: "M 138 142 H 470", stroke: INK, "stroke-width": 3, opacity: 0.45 }, brand);
 
     const head = el("g", {}, host);
-    const q = wrapTxt(head, seg.title || "", 960, 400, 92, INK, 800, 10, 118, "middle");
+    // 西语单词长，每行要放宽到 14 字符，否则会被切成三行
+    const mc = seg.lang === "es" ? 14 : 10;
+    const q = wrapTxt(head, seg.title || "", 960, 400, 92, INK, 800, mc, 118, "middle");
     q.forEach(t => {
       t.setAttribute("stroke", CREAM);
       t.setAttribute("stroke-width", 16);
@@ -1120,7 +1134,8 @@ SCENES.title = {
     });
     // 副标只写话题，不写「05 ·」——序号会把每一集绑成连续剧
     if (seg.kicker) {
-      const k = txt(head, seg.kicker, 960, 502, 44, INK, 700);
+      // 标题折成两行时，副标要跟着往下走，否则会压在第二行上
+      const k = txt(head, seg.kicker, 960, 400 + (q.length - 1) * 118 + 96, 44, INK, 700);
       k.setAttribute("stroke", CREAM);
       k.setAttribute("stroke-width", 12);
       k.setAttribute("stroke-linejoin", "round");
@@ -1175,7 +1190,7 @@ SCENES.cover43 = {
 
     const M = Math.round(W * 0.05);
     const brand = el("g", {}, host);
-    const b = txt(brand, seg.brand || "考考&小熹", M, M + 6, Math.round(W * 0.026), INK, 800, "start");
+    const b = txt(brand, seg.brand || "kaokao&xiaoxi", M, M + 6, Math.round(W * 0.026), INK, 800, "start");
     b.setAttribute("stroke", CREAM); b.setAttribute("stroke-width", 10);
     b.setAttribute("stroke-linejoin", "round"); b.setAttribute("paint-order", "stroke fill");
     el("path", { d: `M ${M} ${M + 28} H ${M + W * 0.21}`, stroke: CREAM, "stroke-width": 8, "stroke-linecap": "round" }, brand);
@@ -1248,8 +1263,10 @@ SCENES.talk = {
       const spkX = close ? 960 : (isXi ? (seg.xiX || 1340) : (seg.kaoX || 520));
       const onLeft = spkX < 960;
       // 左右各留 70px 内边距。之前 20 字的气泡会把文字顶到描边上，看着像被框切了一刀
-      const bw = clamp(seg.say.length * 42 + 180, 380, 880);
-      const fs = 42;
+      // 西语按字符算宽度，中文按字数：拉丁字母窄，同一个 42 会让气泡宽出一倍
+      const es = seg.lang === "es";
+      const bw = clamp(seg.say.length * (es ? 22 : 42) + 180, 380, es ? 940 : 880);
+      const fs = es ? 36 : 42;
       const maxChars = Math.max(6, Math.floor((bw - 140) / fs));
       const nLines = Math.max(1, Math.ceil(seg.say.length / maxChars));
       const lh = 54;

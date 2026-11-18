@@ -185,10 +185,35 @@ def render_frames(node_path, tl_path, frames_dir, fps, scale, total, ext, jobs, 
 import re
 
 _SENT = re.compile(r"(?<=[。！？!?])")
+LANG = "es"          # main() 里按 --lang 覆盖；西语字幕按词切、每行更宽
+
+def _split_es(text, maxc=38, maxlines=2):
+    """西语字幕：按词切，每行 ≤ maxc 字符，最多两行一屏。不能按字符硬断，
+    不然会把单词拦腰切开（'extraordinario' → 'extraordin / ario'）。"""
+    parts = [p.strip() for p in re.split(r"(?<=[.!?])\s+", (text or "").strip()) if p.strip()]
+    pages = []
+    for part in parts:
+        if len(part) <= maxc * maxlines:
+            pages.append(part)
+            continue
+        buf = ""
+        for w in part.split():
+            if len(buf) + len(w) + 1 <= maxc:
+                buf = (buf + " " + w).strip()
+            else:
+                if buf:
+                    pages.append(buf)
+                buf = w
+        if buf:
+            pages.append(buf)
+    return pages
 
 
-def split_subs(text, maxc=21, maxlines=2):
+def split_subs(text, maxc=None, maxlines=2):
     """把一段旁白切成「一屏能看完」的字幕条：先按句，再按逗号，最后硬折行"""
+    if LANG == "es":
+        return _split_es(text, maxc or 38, maxlines)
+    maxc = maxc or 21
     parts = [p.strip() for p in _SENT.split(text) if p.strip()]
     # 同样别让「？！」切成只有标点的一屏
     merged = []
@@ -381,6 +406,7 @@ def compile_timeline(segments):
     """由配音时长推算每段 dur，再累加成 start"""
     t = 0.0
     for i, s in enumerate(segments):
+        s["lang"] = LANG
         vo = s.get("__voDur", 0.0)
         hold = s.get("hold", 0.0)
         floor = s.get("min", 4.0)
@@ -506,6 +532,8 @@ def main():
                     help="配音并发路数（默认 6）。被限流就设 1 退回串行")
     ap.add_argument("--check-align", action="store_true", dest="check_align",
                     help="只做字幕/画面/语音对齐校验，出报告后退出（不编码）")
+    ap.add_argument("--lang", default=None, choices=["es", "zh"],
+                    help="配音语言；不写则跟随台本 meta.lang，缺省 es（墨西哥西语）")
     ap.add_argument("--no-credits-card", action="store_true", dest="no_credits_card",
                     help="不在片尾插图片来源卡（每张图右上角的角标仍在）")
     ap.add_argument("--grain", action="store_true")
@@ -520,6 +548,13 @@ def main():
     root = os.path.dirname(os.path.abspath(a.script))
     with open(a.script, encoding="utf-8") as f:
         sc = json.load(f)
+
+    # 语言优先级：--lang > 台本 meta.lang > 默认 es
+    # 不这么写的话，跑中文老台本会突然变成西语配音
+    global LANG
+    LANG = a.lang or (sc.get("meta") or {}).get("lang") or "es"
+    import tts as _tts
+    _tts.set_lang(LANG)
     segs = sc["segments"]
     meta = sc.get("meta", {})
     title = meta.get("title") or "episode"

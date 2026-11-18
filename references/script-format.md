@@ -18,6 +18,7 @@
 | `type` | string | `title` / `talk` / `show` / `card` / `quiz` / `outro` |
 | `bg` | string | 场景名。**必须是本集 `scenery.js` 里 `SCENE_KIT.scene("名字", ...)` 注册过的名字**（写错 `build.py` 会报警）。没有背景库，场景按话题现场画 |
 | `shot` | string | 景别。`"close"` 大脸特写（仅 `talk`）、`"macro"` 微距推近（仅 `show`）。不写＝中景。一集里至少各来 2–3 次，否则画面像 PPT |
+| `lang` | string | 放在 `meta` 里：`"es"`（默认，墨西哥西语）或 `"zh"`。决定音色、字幕切分、气泡宽度 |
 | `hook` | bool | 开场钩子段标记。钩子放在 `title` 之前，合计 10–20 秒，`build.py` 会检查 |
 | `cover` | string | 仅 `title` 场景：封面主体（本集 scenery 注册的 figure 名，画在右半边）。片头同时当封面用，强烈建议填 |
 | `titleLines` | array | 仅 `title` 场景：显式指定标题的两行文字，避免自动断行甩出孤字 |

@@ -167,3 +167,17 @@ bgm  × 0.16
 | 改混音比例 | `scripts/build.py` 里 ffmpeg 的 `volume=` 参数 |
 
 改完先 `--audio-only` 跑一次（不渲染帧、不编码），几秒就能听。
+
+
+## 西语（es-MX）
+
+es-MX 只有两个音色，靠 `rate` / `pitch` 拉开三个角色：
+
+| 角色 | 音色 | 参数 | 实测 |
+|---|---|---|---|
+| 旁白 | `es-MX-JorgeNeural` | `-5%`, `+0Hz` | 11.9 字符/秒 |
+| 考考 | `es-MX-JorgeNeural` | `+8%`, `+45Hz`，`shift 1.00` | 13.5 字符/秒 |
+| 小熹 | `es-MX-DaliaNeural` | `+6%`, `+25Hz`，`shift 1.00` | 13.2 字符/秒 |
+
+**不要把 `shift` 用在中日韩那套比例上**：Jorge/Dalia 本身是成年声，
+抬 1.1 倍会明显失真；靠 `pitch` 抬音高就够了。
