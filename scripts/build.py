@@ -188,24 +188,25 @@ _SENT = re.compile(r"(?<=[。！？!?])")
 LANG = "es"          # main() 里按 --lang 覆盖；西语字幕按词切、每行更宽
 
 def _split_es(text, maxc=38, maxlines=2):
-    """西语字幕：按词切，每行 ≤ maxc 字符，最多两行一屏。不能按字符硬断，
-    不然会把单词拦腰切开（'extraordinario' → 'extraordin / ario'）。"""
+    """西语字幕：按词切，每行 ≤ maxc 字符，最多两行一屏。
+    返回结构和中文版一致：[{"lines": [...]}]——上层是按这个结构算时长的。"""
     parts = [p.strip() for p in re.split(r"(?<=[.!?])\s+", (text or "").strip()) if p.strip()]
     pages = []
     for part in parts:
-        if len(part) <= maxc * maxlines:
-            pages.append(part)
-            continue
         buf = ""
+        lines = []
         for w in part.split():
             if len(buf) + len(w) + 1 <= maxc:
                 buf = (buf + " " + w).strip()
             else:
                 if buf:
-                    pages.append(buf)
+                    lines.append(buf)
                 buf = w
         if buf:
-            pages.append(buf)
+            lines.append(buf)
+        # 每屏最多 maxlines 行
+        for i in range(0, len(lines), maxlines):
+            pages.append({"lines": lines[i:i + maxlines]})
     return pages
 
 
@@ -858,8 +859,14 @@ def main():
     # 帧数可能来自不同档位（草稿 15fps / 正片 30fps），按实际帧数反推帧率，
     # 否则 15fps 的帧被当 30fps 编码，成片只有一半长
     n_frames = len(glob.glob(os.path.join(frames_dir, f"f*.{ext}")))
+    n_expect = round(total * fps)
     fps_eff = n_frames / total if total > 0 else fps
-    if abs(fps_eff - fps) / fps > 0.02:
+    if n_frames > n_expect * 1.02:
+        # 帧数比预期多：目录里混进了别的版本的旧帧。这时候绝不能按「多出来的帧率」编码，
+        # 否则整片会被加速（实测 31.2fps 会让 4 分钟片快 4%），而且音画逐渐错位。
+        print(f"   帧数 {n_frames} 多于预期 {n_expect}（有旧帧残留），仍按 {fps:.0f}fps 编码并裁掉多余帧")
+    elif abs(fps_eff - fps) / fps > 0.02:
+        # 帧数明显偏少，多半是 15fps 草稿帧，按实际反推
         print(f"   帧数 {n_frames} ≠ {fps}fps × {total:.1f}s，按 {fps_eff:.2f}fps 编码")
         fps = fps_eff
     print("⑤ 编码")
