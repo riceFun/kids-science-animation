@@ -1060,7 +1060,7 @@ SCENES.title = {
       el("rect", { x: 0, y: 0, width: W * (n === 2 ? 0.5 : 0.62), height: H,
                    fill: "url(#gCoverShade)", opacity: 0.9 }, host);
       const brand = el("g", {}, host);
-      const b = txt(brand, seg.brand || "kaokao&xiaoxi", 104, 118, 44, CREAM, 800, "start");
+      const b = txt(brand, seg.brand || brandName(seg), 104, 118, 44, CREAM, 800, "start");
       b.setAttribute("stroke", INK); b.setAttribute("stroke-width", 10);
       b.setAttribute("paint-order", "stroke fill");
       const lines0 = (seg.titleLines && seg.titleLines.length) ? seg.titleLines.slice(0, 2) : [seg.title || ""];
@@ -1096,7 +1096,7 @@ SCENES.title = {
 
       const M = 104;                       // 安全边距
       const brand = el("g", {}, host);
-      const b = txt(brand, seg.brand || "kaokao&xiaoxi", M, 118, 44, INK, 800, "start");
+      const b = txt(brand, seg.brand || brandName(seg), M, 118, 44, INK, 800, "start");
       b.setAttribute("stroke", CREAM); b.setAttribute("stroke-width", 11);
       b.setAttribute("stroke-linejoin", "round"); b.setAttribute("paint-order", "stroke fill");
       el("path", { d: `M ${M} 148 H ${M + 300}`, stroke: CREAM, "stroke-width": 9, "stroke-linecap": "round" }, brand);
@@ -1162,7 +1162,7 @@ SCENES.title = {
     // 品牌退到左上角当台标，标题占据画面中心。
     // 原来品牌压在中间的大蓝卡上、标题被挤到右边，观众第一眼不知道这集讲什么
     const brand = el("g", {}, host);
-    const b = txt(brand, seg.brand || "kaokao&xiaoxi", 138, 112, 50, INK, 800, "start");
+    const b = txt(brand, seg.brand || brandName(seg), 138, 112, 50, INK, 800, "start");
     b.setAttribute("stroke", CREAM);
     b.setAttribute("stroke-width", 11);
     b.setAttribute("stroke-linejoin", "round");
@@ -1238,7 +1238,7 @@ SCENES.cover43 = {
 
     const M = Math.round(W * 0.05);
     const brand = el("g", {}, host);
-    const b = txt(brand, seg.brand || "kaokao&xiaoxi", M, M + 6, Math.round(W * 0.026), INK, 800, "start");
+    const b = txt(brand, seg.brand || brandName(seg), M, M + 6, Math.round(W * 0.026), INK, 800, "start");
     b.setAttribute("stroke", CREAM); b.setAttribute("stroke-width", 10);
     b.setAttribute("stroke-linejoin", "round"); b.setAttribute("paint-order", "stroke fill");
     el("path", { d: `M ${M} ${M + 28} H ${M + W * 0.21}`, stroke: CREAM, "stroke-width": 8, "stroke-linecap": "round" }, brand);
@@ -2016,6 +2016,12 @@ function faceKit(parent, x, y, r, expr) {
    sc enery.js 里写 K.L("中文", "Español")，render.js 会先设好 window.__LANG。 */
 window.__LANG = "es";
 function L(zh, es) { return window.__LANG === "zh" ? zh : es; }
+/* 台标/频道名跟语言走：中文版是「考考与小熹」，西语版是 kaokao&xiaoxi。
+   台本不写 brand 时用这个兜底，避免中文片里冒出拉丁字母。 */
+function brandName(seg) {
+  const lang = (seg && seg.lang) || window.__LANG || "es";
+  return lang === "zh" ? "考考与小熹" : "kaokao&xiaoxi";
+}
 
 function _defs() {
   let d = document.getElementById("dyn-defs");
