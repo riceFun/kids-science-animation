@@ -20,6 +20,11 @@
     <linearGradient id="gUnder" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#5FC6D8"/><stop offset="50%" stop-color="#2A87B8"/><stop offset="100%" stop-color="#0E3F68"/>
     </linearGradient>
+    <linearGradient id="gCoverShade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#000" stop-opacity="0.72"/>
+      <stop offset="0.75" stop-color="#000" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </linearGradient>
     <linearGradient id="gForest" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#2E6B3F"/><stop offset="60%" stop-color="#43834B"/><stop offset="100%" stop-color="#8CBF5A"/>
     </linearGradient>
@@ -1037,6 +1042,49 @@ function blink(node, tt, seed) {
 SCENES.title = {
   mount(host, seg) {
     const coverFn = seg.cover ? FIGURES[seg.cover] : null;
+    // 实拍封面：一张铺满，或两张各占一半（左虎右狮）
+    if (seg.coverPhotoData && seg.coverPhotoData.length) {
+      const arr = seg.coverPhotoData;
+      const n = arr.length;
+      arr.forEach((d, i) => {
+        el("image", { href: d, x: i * (W / n), y: 0, width: W / n, height: H,
+                      preserveAspectRatio: "xMidYMid slice" }, host);
+      });
+      if (n === 2) {
+        el("rect", { x: W / 2 - 6, y: 0, width: 12, height: H, fill: "#0B1220", opacity: 0.85 }, host);
+        const bolt = el("path", { d: "M 960 150 L 918 470 L 992 512 L 906 930 L 1006 500 L 932 458 Z",
+                                  fill: "#FFD34D", stroke: "#B4551F", "stroke-width": 6 }, host);
+        bolt.setAttribute("opacity", 0.95);
+      }
+      // 压暗左半边，标题才看得清
+      el("rect", { x: 0, y: 0, width: W * (n === 2 ? 0.5 : 0.62), height: H,
+                   fill: "url(#gCoverShade)", opacity: 0.9 }, host);
+      const brand = el("g", {}, host);
+      const b = txt(brand, seg.brand || "kaokao&xiaoxi", 104, 118, 44, CREAM, 800, "start");
+      b.setAttribute("stroke", INK); b.setAttribute("stroke-width", 10);
+      b.setAttribute("paint-order", "stroke fill");
+      const lines0 = (seg.titleLines && seg.titleLines.length) ? seg.titleLines.slice(0, 2) : [seg.title || ""];
+      const longest0 = Math.max(1, ...lines0.map(l => l.length));
+      const fs0 = Math.max(56, Math.min(96, Math.floor(760 / longest0)));
+      lines0.forEach((ln, i) => {
+        const t = txt(host, ln, 104, 330 + i * fs0 * 1.16, fs0, "#FFFFFF", 800, "start");
+        t.setAttribute("stroke", INK); t.setAttribute("stroke-width", Math.round(fs0 * 0.16));
+        t.setAttribute("paint-order", "stroke fill");
+      });
+      const c0 = seg.chars === false ? null : castChars(host, {
+        kaoX: seg.kaoX || 300, xiX: seg.xiX || 1640, feet: seg.feet || 1086,
+        kaoScale: seg.kaoScale || 0.74, xiScale: seg.xiScale || 1.34,
+        kaoExpr: "wow", xiView: "front", xiExpr: "happy", xiTail: "wag",
+      });
+      return (tt, u) => {
+        if (c0) {
+          const rise = lerp(60, 0, easeOut(clamp(u / 0.26, 0, 1)));
+          c0.kaoG.setAttribute("transform", `translate(${c0.kx} ${c0.feet + rise}) scale(${c0.KS})`);
+          c0.xiG.setAttribute("transform",
+            `translate(${c0.xx} ${c0.feet + rise + Math.sin(tt * 2) * 6}) scale(${c0.XS})`);
+        }
+      };
+    }
     if (coverFn) {
       const hero = el("g", {}, host);
       const upd = coverFn(hero, seg);
@@ -1522,11 +1570,23 @@ SCENES.photo = {
          右下角要压到字幕下方（基线 1006），所以落点放 1046，否则会和第二行字幕叠在一起。
          底下垫一条半透明胶囊：照片可能是亮草地，纯白字不加底会看不清。 */
       const br = seg.creditPos === "br";
-      const cy = br ? H - 34 : 40;
-      const cw = Math.min(W - 80, seg.credit.length * 15.5 + 40);
-      el("rect", { x: W - 28 - cw, y: cy - 26, width: cw, height: 44, rx: 22,
+      const cy = br ? H - 40 : 44;
+      // 用实测宽度定胶囊，别按字数估：西语一行 30 个字符，估出来会短一截，
+      // 结果字被画面右缘切掉
+      const cf = 26;
+      const _s = document.getElementById("stage");
+      const _m = document.createElementNS(NS, "text");
+      _m.setAttribute("font-size", cf); _m.setAttribute("font-weight", 600);
+      _m.setAttribute("font-family", getComputedStyle(_s).fontFamily || "sans-serif");
+      _m.textContent = seg.credit; _m.setAttribute("opacity", "0");
+      _s.appendChild(_m);
+      const textW = _m.getComputedTextLength() || seg.credit.length * cf * 0.55;
+      _m.remove();
+      const cw = textW + 56;
+      const rightX = W - 60;
+      el("rect", { x: rightX - cw, y: cy - 26, width: cw, height: 44, rx: 22,
                    fill: "#000000", opacity: 0.26 }, host);
-      const t = txt(host, seg.credit, W - 46, cy, 26, "#FFFFFF", 600, "end");
+      const t = txt(host, seg.credit, rightX - 28, cy, cf, "#FFFFFF", 600, "end");
       t.setAttribute("stroke", "#000000"); t.setAttribute("stroke-width", 7);
       t.setAttribute("paint-order", "stroke fill"); t.setAttribute("opacity", 0.95);
     }

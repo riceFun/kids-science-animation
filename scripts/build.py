@@ -585,6 +585,22 @@ def main():
         if s.get("credit"):
             photo_credits.append(str(s["credit"]).strip())
 
+    # 封面用实拍图：coverPhoto 可以是单张，也可以是两张（左虎右狮）
+    for s in segs:
+        cp = s.get("coverPhoto")
+        if not cp:
+            continue
+        arr = cp if isinstance(cp, list) else [cp]
+        data = []
+        for pth in arr[:2]:
+            fp = pth if os.path.isabs(pth) else os.path.join(root, pth)
+            if not os.path.exists(fp):
+                raise SystemExit(f"封面图不存在：{fp}")
+            mime = "image/png" if fp.lower().endswith(".png") else "image/jpeg"
+            with open(fp, "rb") as f:
+                data.append(f"data:{mime};base64," + base64.b64encode(f.read()).decode())
+        s["coverPhotoData"] = data
+
     # 有署名要求的图，默认在片尾（outro 之前）插一张来源卡。
     # 每张图右上角本来就带角标，觉得卡片多余就 meta.creditsCard=false 或 --no-credits-card。
     want_card = meta.get("creditsCard", True) and not a.no_credits_card
@@ -595,8 +611,10 @@ def main():
             "type": "credits",
             "bg": segs[at - 1].get("bg") if at else "meadow_day",
             "min": max(6.0, 2.2 + len(uniq) * 1.6),
-            "title": "图片来源",
-            "text": "本集的照片来自这几位摄影师，谢谢他们免费分享。",
+            "title": "图片来源" if LANG == "zh" else "Créditos",
+            "text": ("本集的照片来自这几位摄影师，谢谢他们免费分享。"
+                     if LANG == "zh" else
+                     "Las fotos de este episodio vienen de estos fotógrafos. ¡Gracias!"),
             "items": [{"text": c} for c in uniq],
         })
         print(f"   署名卡：{len(uniq)} 条来源")

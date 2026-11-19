@@ -8,6 +8,7 @@
 只渲染一帧，不跑配音和编码。
 """
 import argparse
+import base64
 import json
 import os
 import shutil
@@ -42,8 +43,8 @@ def main():
     title = next((s for s in sc["segments"] if s.get("type") == "title"), None)
     if not title:
         raise SystemExit("台本里没有 title 段，不能出封面")
-    if not title.get("cover"):
-        print("  ! title 没写 cover，封面会没有主体", file=sys.stderr)
+    if not title.get("cover") and not title.get("coverPhoto"):
+        print("  ! title 没写 cover / coverPhoto，封面会没有主体", file=sys.stderr)
 
     seg = dict(title)
     # 4:3 画面窄，站位/缩放往往要另一套；台本里可用 "c43": {...} 覆盖
@@ -51,6 +52,21 @@ def main():
         seg.update(title.get("c43") or {})
     seg["type"] = scene
     seg["dur"] = max(2.0, t + 1.5)
+
+    # 实拍封面：coverPhoto 的图要读成 base64 内联，file:// 下直接引路径会被 Chrome 拦
+    cp = title.get("coverPhoto")
+    if cp:
+        arr = cp if isinstance(cp, list) else [cp]
+        data = []
+        for pth in arr[:2]:
+            fp = pth if os.path.isabs(pth) else os.path.join(root, pth)
+            if not os.path.exists(fp):
+                raise SystemExit(f"封面图不存在：{fp}")
+            mime = "image/png" if fp.lower().endswith(".png") else "image/jpeg"
+            with open(fp, "rb") as f:
+                data.append(f"data:{mime};base64," + base64.b64encode(f.read()).decode())
+        seg["coverPhotoData"] = data
+        seg.pop("cover", None)
     # cover43 背景自带木纹，不需要本集 BG；title 仍要本集背景
     if scene == "cover43":
         seg.pop("bg", None)
