@@ -964,8 +964,13 @@ def main():
         try:
             os.makedirs(dest, exist_ok=True)
             shutil.copy2(mp4, dest)
-            covers = sorted(glob.glob(os.path.join(out_dir, "cover*.png")) +
-                            glob.glob(os.path.join(out_dir, "*封面*.png")))
+            # 只带本语言那一套封面：out/ 里同时存在 cover_16x9 和 cover_es_16x9 时，
+            # 不筛的话两个语言的文件会全部塞进同一个目录
+            tag = "es" if LANG != "zh" else "zh"
+            allc = sorted(glob.glob(os.path.join(out_dir, "cover*.png")) +
+                          glob.glob(os.path.join(out_dir, "*封面*.png")))
+            lang_c = [c for c in allc if f"_{tag}_" in os.path.basename(c) or f"-{tag}-" in os.path.basename(c)]
+            covers = lang_c or allc
             for cf in covers:
                 shutil.copy2(cf, dest)
             print(f"归档 → {dest}" + (f"（含 {len(covers)} 张封面）" if covers else ""))
