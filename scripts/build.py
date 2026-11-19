@@ -130,19 +130,41 @@ def auto_jobs(scale):
 _ACTIVE = []
 
 
-def _kill_active():
-    """中断时把还活着的分片（含其 Chrome 子进程）一起收掉。
-    只 kill build 自己，分片的 node/Chrome 会成为孤儿一直占内存 —— 实测残留 21 个进程，
-    下一次渲染直接掉到 1 帧/秒。"""
-    for p in list(_ACTIVE):
-        try:
-            os.killpg(os.getpgid(p.pid), signal.SIGKILL)
-        except Exception:  # noqa: BLE001
+def _kill_active(grace=1.5):
+    """中断时把分片和它们的 Chrome 一起收掉。
+
+    踩过的坑：Chrome 不在分片的进程组里，killpg 只杀得掉 node，
+    Chrome 全变孤儿（实测残留 21 个），下一次渲染直接掉到 1 帧/秒。
+    所以先 SIGTERM 让 render.js 自己 close，再 killpg，最后按 profile 兜底扫一遍。
+    """
+    if _ACTIVE:
+        for p in list(_ACTIVE):
             try:
-                p.kill()
+                os.killpg(os.getpgid(p.pid), signal.SIGTERM)
             except Exception:  # noqa: BLE001
                 pass
-    _ACTIVE.clear()
+        time.sleep(grace)
+        for p in list(_ACTIVE):
+            try:
+                os.killpg(os.getpgid(p.pid), signal.SIGKILL)
+            except Exception:  # noqa: BLE001
+                pass
+        _ACTIVE.clear()
+    _sweep_chrome()
+
+
+def _sweep_chrome():
+    """兜底：清掉本工具拉起的所有 headless Chrome（profile 固定前缀，不碰用户浏览器）。"""
+    try:
+        out = subprocess.run(["pgrep", "-f", "kids-chrome-"],
+                             capture_output=True, text=True).stdout
+        n = len([x for x in out.split() if x])
+        if n:
+            subprocess.run(["pkill", "-9", "-f", "kids-chrome-"],
+                           capture_output=True)
+            time.sleep(0.5)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def _on_signal(signum, frame):
@@ -531,6 +553,7 @@ def preflight():
 
 def main():
     preflight()
+    _sweep_chrome()   # 上次异常退出可能留下 headless Chrome，孤儿会拖慢本次渲染
     T0 = time.perf_counter()
     _marks = []
 
