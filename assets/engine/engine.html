@@ -1737,23 +1737,42 @@ SCENES.outro = {
        第二行正好压在 line2 上，两条字叠在一起。 */
     const l1 = seg.line1 || "下集见！";
     const es = seg.lang === "es";
-    const LC = es ? 10 : 12;                 // 每行字数（西语单词长，放宽会超出卡宽）
+    /* 折行要看「放不放得下」，不是「几个字」。
+       之前按每行 10 字符切，¡Hasta luego! 13 个字符明明放得下，也被硬折成两行。 */
+    const FS1 = 62, LH1 = 78, MAXW = 1060;
+    const _st0 = document.getElementById("stage");
+    const measure = (str) => {
+      const t = document.createElementNS(NS, "text");
+      t.setAttribute("font-size", FS1); t.setAttribute("font-weight", 700);
+      t.setAttribute("font-family", getComputedStyle(_st0).fontFamily || "sans-serif");
+      t.textContent = str; t.setAttribute("opacity", "0");
+      _st0.appendChild(t);
+      const w = t.getComputedTextLength() || str.length * FS1 * 0.9;
+      t.remove();
+      return w;
+    };
     const l1lines = [];
-    if (es) {
+    if (measure(l1) <= MAXW) {
+      l1lines.push(l1);                       // 一行放得下就别折
+    } else if (es) {
       let cur = "";
       for (const w of l1.split(/\s+/)) {
         if (!cur) cur = w;
-        else if ((cur + " " + w).length <= LC) cur += " " + w;
+        else if (measure(cur + " " + w) <= MAXW) cur += " " + w;
         else { l1lines.push(cur); cur = w; }
       }
       if (cur) l1lines.push(cur);
     } else {
-      for (let i = 0; i < l1.length; i += LC) l1lines.push(l1.slice(i, i + LC));
+      let cur = "";
+      for (const ch of l1) {
+        if (cur && measure(cur + ch) > MAXW) { l1lines.push(cur); cur = ch; }
+        else cur += ch;
+      }
+      if (cur) l1lines.push(cur);
     }
     const n1 = Math.max(1, l1lines.length);
-    const FS1 = 62, LH1 = 78;
     const maxLen = l1lines.reduce((m, x) => Math.max(m, x.length), 1);
-    const cardW = clamp(Math.max(560, maxLen * FS1 * 0.92 + 140), 560, 1280);
+    const cardW = clamp(Math.max(560, Math.max(...l1lines.map(measure)) + 150), 560, 1280);
     const cardH = 92 + n1 * LH1 + (seg.line2 ? 56 : 0);
     const cardX = 960 - cardW / 2, cardY = 300 - cardH / 2 + 40;
     el("rect", { x: cardX + 4, y: cardY + 8, width: cardW, height: cardH, rx: 46,
