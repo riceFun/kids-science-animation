@@ -277,3 +277,20 @@ python3 scripts/build.py script.json --grain --no-render   # 只编码
 ```
 
 分段还有个好处：某段崩了不会废掉整批。
+
+## 25. TTS 返回空音频会被缓存，之后每次都失败
+
+现象：某一句反复报 `音频为空（vo_xxx.mp3）`，改文案也没用——因为空文件已经落到
+`audio/vo_<hash>.mp3`，下一轮直接命中缓存，不会再请求。
+
+处理：删掉 2KB 以下的缓存放回去重跑。
+
+```bash
+python3 -c "
+import os, glob
+for p in glob.glob('**/vo_*.mp3', recursive=True):
+    if os.path.getsize(p) < 2000: os.remove(p)
+"
+```
+
+空音频通常是 EdgeTTS 临时抽风（短句、以逗号开头的片段更容易踩），重试一般就好。

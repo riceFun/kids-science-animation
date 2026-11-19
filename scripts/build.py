@@ -794,7 +794,8 @@ def main():
                 print(f"   ! 儿歌 {n} 句：控制在 4–6 句，多了会挤出歌词框")
 
     # 片头同时是封面：没有封面主体，缩略图就看不出这集讲什么
-    no_cover = [i for i, s in enumerate(segs) if s.get("type") == "title" and not s.get("cover")]
+    no_cover = [i for i, s in enumerate(segs)
+                if s.get("type") == "title" and not s.get("cover") and not s.get("coverPhoto")]
     if no_cover:
         print(f"   ! 片头缺封面主体（title 缺 cover）：第 {', '.join(str(i) for i in no_cover)} 段")
         print("     片头这一帧要当封面用，必须把这一集讲的东西画在右半边")
