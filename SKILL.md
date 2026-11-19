@@ -471,7 +471,7 @@ python3 <skill>/scripts/build.py script.json --grain
 
 | 项 | 规则 |
 |---|---|
-| 结构 | `<话题>/<ZH\|SP>/`，话题一级、语言二级 |
+| 结构 | `<话题>/<ZH 或 SP>/`，话题一级、语言二级 |
 | 话题来源 | 优先 `meta.topic`；没写就从 `meta.title` 去掉「系列名-序号-」前缀推导 |
 | 语言目录 | 中文 `ZH`、西语 `SP` |
 | 桌面根目录 | 固定 `kaokao&xiaoxi`（带 &，既有目录名） |
