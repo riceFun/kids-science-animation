@@ -453,28 +453,32 @@ python3 <skill>/scripts/build.py script.json --grain
 
 ### 产物归档（自动）
 
-正片编码完成后，`build.py` 自动把**成片和封面**复制到桌面频道目录，**按话题 + 语言分文件夹**：
+正片编码完成后，`build.py` 自动把**成片和封面**复制到桌面，按 **话题 → 语言** 两级存放：
 
 ```
 ~/Desktop/kaokao&xiaoxi/
-├── 蜘蛛不是昆虫-ZH/               ← 中文版
-│   ├── 考考与小熹-10-蜘蛛不是昆虫.mp4
-│   ├── cover_16x9.png
-│   └── cover_4x3.png
-└── tigre-o-leon-SP/               ← 西语版（同一个话题另建一个）
-    ├── kaokaoxiaoxi-09-tigre-o-leon.mp4
-    └── cover_16x9.png
+├── 蜘蛛不是昆虫/
+│   ├── ZH/
+│   │   ├── 考考与小熹-10-蜘蛛不是昆虫.mp4
+│   │   ├── cover_16x9.png
+│   │   └── cover_4x3.png
+│   └── SP/            ← 同一话题的西语版渲染完会自动出现在这里
+└── tigre-o-leon/
+    └── SP/
+        ├── kaokaoxiaoxi-09-tigre-o-leon.mp4
+        └── cover_16x9.png
 ```
 
 | 项 | 规则 |
 |---|---|
-| 文件夹名 | `<话题>-<ZH|SP>`，中文 `-ZH`、西语 `-SP` |
+| 结构 | `<话题>/<ZH\|SP>/`，话题一级、语言二级 |
 | 话题来源 | 优先 `meta.topic`；没写就从 `meta.title` 去掉「系列名-序号-」前缀推导 |
-| 桌面目录 | 固定 `kaokao&xiaoxi`（带 &，是既有目录名） |
+| 语言目录 | 中文 `ZH`、西语 `SP` |
+| 桌面根目录 | 固定 `kaokao&xiaoxi`（带 &，既有目录名） |
 | 封面 | `out/` 下 `cover*.png` / `*封面*.png` 一并带走 |
 | 关闭 | `--no-archive` |
 
-**同一话题的两个语言版本各占一个文件夹，不混放**——上传时中文走 ZH、西语走 SP，不会拿错。
+同一话题的两个语言版本挂在同一个话题目录下，上传时各取所需，不会拿错。
 
 ### 只改音频（改了文案但画面没变）
 

@@ -930,7 +930,8 @@ def main():
         meta = sc.get("meta") or {}
         topic = (meta.get("topic") or "").strip() or re.sub(r"^.*?-\d+[-_ ]*", "", title) or title
         suffix = "ZH" if LANG == "zh" else "SP"
-        dest = os.path.join(os.path.expanduser("~"), "Desktop", "kaokao&xiaoxi", f"{topic}-{suffix}")
+        # 两级：<话题>/ZH 与 <话题>/SP，同一话题的中英版本挂在同一个话题目录下
+        dest = os.path.join(os.path.expanduser("~"), "Desktop", "kaokao&xiaoxi", topic, suffix)
         try:
             os.makedirs(dest, exist_ok=True)
             shutil.copy2(mp4, dest)
