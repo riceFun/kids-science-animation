@@ -2016,11 +2016,11 @@ function faceKit(parent, x, y, r, expr) {
    sc enery.js 里写 K.L("中文", "Español")，render.js 会先设好 window.__LANG。 */
 window.__LANG = "es";
 function L(zh, es) { return window.__LANG === "zh" ? zh : es; }
-/* 台标/频道名跟语言走：中文版是「考考与小熹」，西语版是 kaokao&xiaoxi。
+/* 台标/频道名跟语言走：中文版是「考考与小熹」，西语版是 kaokaoxiaoxi。
    台本不写 brand 时用这个兜底，避免中文片里冒出拉丁字母。 */
 function brandName(seg) {
   const lang = (seg && seg.lang) || window.__LANG || "es";
-  return lang === "zh" ? "考考与小熹" : "kaokao&xiaoxi";
+  return lang === "zh" ? "考考与小熹" : "kaokaoxiaoxi";
 }
 
 function _defs() {

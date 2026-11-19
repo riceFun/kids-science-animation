@@ -533,6 +533,8 @@ def main():
                     help="配音并发路数（默认 6）。被限流就设 1 退回串行")
     ap.add_argument("--check-align", action="store_true", dest="check_align",
                     help="只做字幕/画面/语音对齐校验，出报告后退出（不编码）")
+    ap.add_argument("--no-archive", action="store_true", dest="no_archive",
+                    help="不把产物归档到桌面频道目录")
     ap.add_argument("--lang", default=None, choices=["es", "zh"],
                     help="配音语言；不写则跟随台本 meta.lang，缺省 es（墨西哥西语）")
     ap.add_argument("--no-credits-card", action="store_true", dest="no_credits_card",
@@ -911,6 +913,22 @@ def main():
          "-c:a", "aac", "-b:a", "192k", "-shortest", mp4])
     size = os.path.getsize(mp4) / 1024 / 1024
     step("编码")
+
+    # 归档：桌面频道目录／每集一个子文件夹，成片和封面都放进去
+    if not a.no_archive:
+        import shutil
+        dest = os.path.join(os.path.expanduser("~"), "Desktop", "kaokao&xiaoxi", title)
+        try:
+            os.makedirs(dest, exist_ok=True)
+            shutil.copy2(mp4, dest)
+            covers = sorted(glob.glob(os.path.join(out_dir, "cover*.png")) +
+                            glob.glob(os.path.join(out_dir, "*封面*.png")))
+            for cf in covers:
+                shutil.copy2(cf, dest)
+            print(f"归档 → {dest}" + (f"（含 {len(covers)} 张封面）" if covers else ""))
+        except Exception as e:  # noqa: BLE001
+            print(f"   ! 归档失败：{e}")
+
     print(f"\n完成：{mp4}")
     print(f"  时长 {m}:{s_:02d} · {fps:.0f}fps · {size:.1f} MB")
     summary()

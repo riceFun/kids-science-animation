@@ -4,7 +4,7 @@ description: 制作 4–5 分钟儿童科普动画短片（系列角色：考考
 agent_created: true
 ---
 
-# kaokao&xiaoxi · 儿童科普动画
+# kaokaoxiaoxi · 儿童科普动画
 
 把一份中文台本（`script.json`）变成 4–5 分钟的 1080p 儿童科普动画。
 
@@ -165,7 +165,7 @@ agent_created: true
 
 ```json
 {"type":"title","bg":"木桌","cover":"封面鳗鱼饭","coverScale":1.05,"coverX":-70,
- "brand":"kaokao&xiaoxi","kicker":"鳗鱼饭",
+ "brand":"kaokaoxiaoxi","kicker":"鳗鱼饭",
  "title":"鳗鱼饭，以后吃不到了？",
  "titleLines":["鳗鱼饭，","以后吃不到了？"],
  "text":"鳗鱼饭，以后吃不到了？"}
@@ -382,9 +382,9 @@ cp <skill>/assets/example/scenery.js  <项目>/ep01/
 
 | 字段 | 写什么 | 例子 |
 |---|---|---|
-| `meta.series` | 系列名（固定，同时也是频道名） | 中文版 `考考与小熹` / 西语版 `kaokao&xiaoxi` |
+| `meta.series` | 系列名（固定，同时也是频道名） | 中文版 `考考与小熹` / 西语版 `kaokaoxiaoxi` |
 | `meta.title` | 系列名-序号+话题，**同时是输出文件名** | `考考与小熹-02闪电与雷声` |
-| `title` 段的 `brand` | 左上角台标（固定系列名） | 中文版 `考考与小熹` / 西语版 `kaokao&xiaoxi` |
+| `title` 段的 `brand` | 左上角台标（固定系列名） | 中文版 `考考与小熹` / 西语版 `kaokaoxiaoxi` |
 | `title` 段的 `kicker` | 只写话题，**不带序号** | `闪电与雷声` |
 | `title` 段的 `text` | 必填，把标题念出来 | `为什么先看到闪电？` |
 | `outro` | 只留 `line1`，不写「第 N 集」 | `下次见！` |
@@ -450,6 +450,23 @@ python3 <skill>/scripts/build.py script.json --grain
 ```
 
 1920×1080 / 30fps，编码时叠胶片颗粒。默认 6 进程并行 + JPEG 中间帧，4 分钟片 **约 3–5 分钟**出片（不再需要半小时）。
+
+### 产物归档（自动）
+
+正片编码完成后，`build.py` 会自动把**成片和封面**复制到桌面频道目录，每集一个子文件夹：
+
+```
+~/Desktop/kaokao&xiaoxi/
+└── <meta.title>/            ← 一集一个文件夹，名字就是 meta.title
+    ├── <meta.title>.mp4
+    ├── cover_16x9.png
+    └── cover_4x3.png
+```
+
+- 目录名固定 `kaokao&xiaoxi`（带 &，是文件夹的既有名，别改）
+- 子文件夹名直接取 `meta.title`，所以**台本里的 title 要写全**（含系列名和话题）
+- 封面在 `out/` 下以 `cover*.png` / `*封面*.png` 命名就会被一并带走
+- 不想归档：`--no-archive`
 
 ### 只改音频（改了文案但画面没变）
 
