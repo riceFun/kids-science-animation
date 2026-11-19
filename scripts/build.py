@@ -29,6 +29,7 @@ import glob
 import hashlib
 import json
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -925,7 +926,11 @@ def main():
     # 归档：桌面频道目录／每集一个子文件夹，成片和封面都放进去
     if not a.no_archive:
         import shutil
-        dest = os.path.join(os.path.expanduser("~"), "Desktop", "kaokao&xiaoxi", title)
+        # 目录按「话题-语言」分：蜘蛛不是昆虫-ZH / 蜘蛛不是昆虫-SP，中英分开不混放
+        meta = sc.get("meta") or {}
+        topic = (meta.get("topic") or "").strip() or re.sub(r"^.*?-\d+[-_ ]*", "", title) or title
+        suffix = "ZH" if LANG == "zh" else "SP"
+        dest = os.path.join(os.path.expanduser("~"), "Desktop", "kaokao&xiaoxi", f"{topic}-{suffix}")
         try:
             os.makedirs(dest, exist_ok=True)
             shutil.copy2(mp4, dest)

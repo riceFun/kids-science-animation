@@ -453,20 +453,28 @@ python3 <skill>/scripts/build.py script.json --grain
 
 ### 产物归档（自动）
 
-正片编码完成后，`build.py` 会自动把**成片和封面**复制到桌面频道目录，每集一个子文件夹：
+正片编码完成后，`build.py` 自动把**成片和封面**复制到桌面频道目录，**按话题 + 语言分文件夹**：
 
 ```
 ~/Desktop/kaokao&xiaoxi/
-└── <meta.title>/            ← 一集一个文件夹，名字就是 meta.title
-    ├── <meta.title>.mp4
-    ├── cover_16x9.png
-    └── cover_4x3.png
+├── 蜘蛛不是昆虫-ZH/               ← 中文版
+│   ├── 考考与小熹-10-蜘蛛不是昆虫.mp4
+│   ├── cover_16x9.png
+│   └── cover_4x3.png
+└── tigre-o-leon-SP/               ← 西语版（同一个话题另建一个）
+    ├── kaokaoxiaoxi-09-tigre-o-leon.mp4
+    └── cover_16x9.png
 ```
 
-- 目录名固定 `kaokao&xiaoxi`（带 &，是文件夹的既有名，别改）
-- 子文件夹名直接取 `meta.title`，所以**台本里的 title 要写全**（含系列名和话题）
-- 封面在 `out/` 下以 `cover*.png` / `*封面*.png` 命名就会被一并带走
-- 不想归档：`--no-archive`
+| 项 | 规则 |
+|---|---|
+| 文件夹名 | `<话题>-<ZH|SP>`，中文 `-ZH`、西语 `-SP` |
+| 话题来源 | 优先 `meta.topic`；没写就从 `meta.title` 去掉「系列名-序号-」前缀推导 |
+| 桌面目录 | 固定 `kaokao&xiaoxi`（带 &，是既有目录名） |
+| 封面 | `out/` 下 `cover*.png` / `*封面*.png` 一并带走 |
+| 关闭 | `--no-archive` |
+
+**同一话题的两个语言版本各占一个文件夹，不混放**——上传时中文走 ZH、西语走 SP，不会拿错。
 
 ### 只改音频（改了文案但画面没变）
 
