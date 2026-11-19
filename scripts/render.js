@@ -65,10 +65,18 @@ async function shutdown(browser) {
     const proc = browser.process && browser.process();
     if (proc && !proc.killed) { try { proc.kill('SIGKILL'); } catch (e) { /* */ } }
   } catch (e) { /* */ }
-  try {
-    require('child_process').execSync(
-      `pkill -9 -f "user-data-dir=${PROFILE}" || true`, { stdio: 'ignore' });
-  } catch (e) { /* */ }
+  const cp = require('child_process');
+  /* 收尾确认：pkill 之后 Chrome 的子进程还要几秒才退干净。
+     这里轮询到 0 为止（最多 3 秒），不然任务"结束"了活动监视器里还挂着一串 Helper。 */
+  for (let i = 0; i < 15; i++) {
+    let n = 0;
+    try {
+      n = parseInt(cp.execSync(`pgrep -f "kids-chrome-" | wc -l`, { encoding: 'utf8' }).trim(), 10) || 0;
+    } catch (e) { n = 0; }
+    if (n === 0) break;
+    try { cp.execSync(`pkill -9 -f "kids-chrome-" || true`, { stdio: 'ignore' }); } catch (e) { /* */ }
+    cp.execSync('sleep 0.2');
+  }
   try { fs.rmSync(PROFILE, { recursive: true, force: true }); } catch (e) { /* */ }
   process.exit(0);
 }
