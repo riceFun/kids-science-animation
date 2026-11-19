@@ -1732,19 +1732,49 @@ SCENES.outro = {
       xiView: seg.xiView || "front", xiExpr: seg.xiExpr || "happy", xiTail: seg.xiTail || "glow",
     });
     const g = el("g", {}, host);
-    el("rect", { x: 564, y: 238, width: 800, height: 190, rx: 46,
+    /* 告别卡：高度必须跟着 line1 的实际行数走。
+       原来卡片固定 190 高、line2 固定 y=386——西语 "¡Hasta luego!" 折成两行后，
+       第二行正好压在 line2 上，两条字叠在一起。 */
+    const l1 = seg.line1 || "下集见！";
+    const es = seg.lang === "es";
+    const LC = es ? 10 : 12;                 // 每行字数（西语单词长，放宽会超出卡宽）
+    const l1lines = [];
+    if (es) {
+      let cur = "";
+      for (const w of l1.split(/\s+/)) {
+        if (!cur) cur = w;
+        else if ((cur + " " + w).length <= LC) cur += " " + w;
+        else { l1lines.push(cur); cur = w; }
+      }
+      if (cur) l1lines.push(cur);
+    } else {
+      for (let i = 0; i < l1.length; i += LC) l1lines.push(l1.slice(i, i + LC));
+    }
+    const n1 = Math.max(1, l1lines.length);
+    const FS1 = 62, LH1 = 78;
+    const maxLen = l1lines.reduce((m, x) => Math.max(m, x.length), 1);
+    const cardW = clamp(Math.max(560, maxLen * FS1 * 0.92 + 140), 560, 1280);
+    const cardH = 92 + n1 * LH1 + (seg.line2 ? 56 : 0);
+    const cardX = 960 - cardW / 2, cardY = 300 - cardH / 2 + 40;
+    el("rect", { x: cardX + 4, y: cardY + 8, width: cardW, height: cardH, rx: 46,
                  fill: INK, opacity: 0.22, style: "filter:blur(20px)" }, g);
-    el("rect", { x: 560, y: 230, width: 800, height: 190, rx: 46, fill: CREAM, stroke: INK, "stroke-width": 12, opacity: 0.98 }, g);
-    wrapTxt(g, seg.line1 || "下集见！", 960, 310, 62, "#B4551F", 700, 12, 74, "middle");
-    if (seg.line2) txt(g, seg.line2, 960, 386, 36, "#6B5942", 500);
+    el("rect", { x: cardX, y: cardY, width: cardW, height: cardH, rx: 46, fill: CREAM,
+                 stroke: INK, "stroke-width": 12, opacity: 0.98 }, g);
+    l1lines.forEach((ln, i) => {
+      txt(g, ln, 960, cardY + 76 + i * LH1, FS1, "#B4551F", 700, "middle");
+    });
+    if (seg.line2) {
+      txt(g, seg.line2, 960, cardY + 76 + n1 * LH1 + 8, 36, "#6B5942", 500);
+    }
     // 下集预告是可选的：不给 next 就只留告别卡，不画蓝条
     const nx = (seg.next || "").trim();
     const next = nx ? el("g", {}, host) : null;
     if (next) {
       // 条宽跟着字走，否则长一点的下集标题会顶出蓝条
       const nw = clamp(nx.length * 44 + 120, 620, 1500);
-      el("rect", { x: 960 - nw / 2, y: 470, width: nw, height: 118, rx: 34, fill: "#3C7DB5", stroke: INK, "stroke-width": 11 }, next);
-      txt(next, nx, 960, 546, 42, CREAM, 600);
+      const ny = cardY + cardH + 56;
+      el("rect", { x: 960 - nw / 2, y: ny, width: nw, height: 118, rx: 34, fill: "#3C7DB5", stroke: INK, "stroke-width": 11 }, next);
+      txt(next, nx, 960, ny + 76, 42, CREAM, 600);
     }
     return (tt, u) => {
       const k = easeBack(clamp(u / 0.14, 0, 1));
