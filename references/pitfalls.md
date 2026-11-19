@@ -251,3 +251,29 @@ macOS 上 `python3` 可能指向没装 numpy 的解释器。先 `python3 -c "imp
 
 **结论：并发从 1 加到 3 只多 12%，但内存不够会直接掉到 1/7。**
 `--jobs 2~3` 足够，别为了并发把内存吃穿。无 GPU 的容器里用 `CHROME_NO_GPU=1` 关回去。
+
+## 23. `--jobs 1` 会永久卡住（已修）
+
+单进程分支走 `run(base, env=env)`，`run()` 用 `subprocess.PIPE` 接 stdout。
+Chrome 启动时的警告很快填满 64KB 管道，子进程卡在写 stderr 上永不退出，
+父进程一直等着 —— 表现是「渲染 0 帧、日志空、进程还在」。
+
+修法：jobs==1 也写文件日志，不用 PIPE。多进程分支早就是这个写法，只有单进程漏了。
+
+## 24. 全片渲染卡住时，分段渲染能绕开
+
+现象：`build.py ... --force` 起 3 路分片，10 分钟 0 帧；但同一份 timeline
+用 `render.js --from X --to Y` 手动分段，每段 40 秒都能 40 秒内渲完（23 帧/秒）。
+
+目前没定位到具体帧。可用的绕过方式：
+
+```bash
+for i in $(seq 0 7); do
+  s=$((i*31)); e=$(((i+1)*31))
+  node scripts/render.js <engine> timeline.json frames --fps 30 --scale 1 \
+    --scenery scenery.js --jpeg 95 --force --from $s --to $e
+done
+python3 scripts/build.py script.json --grain --no-render   # 只编码
+```
+
+分段还有个好处：某段崩了不会废掉整批。

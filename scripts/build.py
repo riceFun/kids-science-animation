@@ -194,7 +194,12 @@ def render_frames(node_path, tl_path, frames_dir, fps, scale, total, ext, jobs, 
     jobs = jobs or auto_jobs(scale)
     jobs = max(1, min(jobs, int(total * fps) or 1))
     if jobs == 1:
-        return run(base, env=env)
+        # 单进程也走文件日志：run() 用 PIPE 接 stdout，Chrome 的警告很快填满管道，
+        # 子进程卡在写 stderr 上永不退出，父进程就一直挂着（实测 --jobs 1 必卡）
+        lp = os.path.join(frames_dir, ".render_1.log")
+        with open(lp, "w", encoding="utf-8") as fh:
+            return subprocess.run(base, env=env, stdout=fh,
+                                  stderr=subprocess.STDOUT).returncode
 
     print(f"   并行 {jobs} 进程（每个各渲一段）")
     # 日志必须落文件，不能用 stderr=PIPE：6 个 Chrome 的警告很快填满 64KB 管道，
