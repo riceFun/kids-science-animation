@@ -120,8 +120,9 @@ def auto_jobs(scale):
     实测 1080p 串行 5.3 帧/秒 → 6 进程 27 帧/秒（5.2×）→ 再叠 JPEG 到 55 帧/秒。
     核多也别无限开，每个 Chrome 吃 300–500MB。"""
     n = os.cpu_count() or 4
-    cap = 6 if scale >= 1 else 8
-    return max(1, min(cap, n // 2 or 1))
+    # 默认 6 路（用户指定）。核数不够就按核数收，别开出一堆互相抢内存的进程：
+    # 每个 Chrome 峰值约 700MB，6 路 ≈ 4GB。
+    return 6 if n >= 6 else max(1, n // 2 or 1)
 
 
 def render_frames(node_path, tl_path, frames_dir, fps, scale, total, ext, jobs, rough, force=False,
