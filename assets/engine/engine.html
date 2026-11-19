@@ -1119,7 +1119,7 @@ SCENES.title = {
       const kick = (seg.kicker || "").trim();
       const redundant = !kick || kick === seg.title || seg.title.includes(kick);
       if (!redundant) {
-        const ky = 330 + (lines.length - 1) * fs * 1.16 + 76;
+        const ky = 330 + (lines.length - 1) * fs * 1.3 + Math.round(fs * 0.9) + 34;
         const k = txt(head, kick, M, ky, 46, "#B4551F", 800, "start");
         k.setAttribute("stroke", CREAM); k.setAttribute("stroke-width", 12);
         k.setAttribute("paint-order", "stroke fill");

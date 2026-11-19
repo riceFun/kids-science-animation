@@ -127,6 +127,33 @@ def auto_jobs(scale):
     return 3 if n >= 6 else max(1, n // 2 or 1)
 
 
+_ACTIVE = []
+
+
+def _kill_active():
+    """中断时把还活着的分片（含其 Chrome 子进程）一起收掉。
+    只 kill build 自己，分片的 node/Chrome 会成为孤儿一直占内存 —— 实测残留 21 个进程，
+    下一次渲染直接掉到 1 帧/秒。"""
+    for p in list(_ACTIVE):
+        try:
+            os.killpg(os.getpgid(p.pid), signal.SIGKILL)
+        except Exception:  # noqa: BLE001
+            try:
+                p.kill()
+            except Exception:  # noqa: BLE001
+                pass
+    _ACTIVE.clear()
+
+
+def _on_signal(signum, frame):
+    _kill_active()
+    raise SystemExit(130)
+
+
+signal.signal(signal.SIGTERM, _on_signal)
+signal.signal(signal.SIGINT, _on_signal)
+
+
 def render_frames(node_path, tl_path, frames_dir, fps, scale, total, ext, jobs, rough, force=False,
                   scenery=None):
     """按时间切片起多个 render.js 并行渲。帧号是全局的，分片不会撞。"""
@@ -156,10 +183,12 @@ def render_frames(node_path, tl_path, frames_dir, fps, scale, total, ext, jobs, 
         lp = os.path.join(frames_dir, f".render_{i + 1}.log")
         fh = open(lp, "w", encoding="utf-8")
         logs.append((lp, fh))
-        procs.append(subprocess.Popen(
+        pr = subprocess.Popen(
             base + ["--from", f"{a0:.3f}", "--to", f"{b0:.3f}"], env=env,
             stdout=fh, stderr=subprocess.STDOUT,
-            start_new_session=True))   # 独立进程组：超时可以连同 Chrome 一起杀
+            start_new_session=True)    # 独立进程组：超时可以连同 Chrome 一起杀
+        procs.append(pr)
+        _ACTIVE.append(pr)
     # 兜底超时：正常 1080p 也就 18ms/帧，给到 1s/帧还没完必然是挂住了
     # 正常 1080p 约 24 帧/秒，给到 4 帧/秒的余量就够；卡死的分片早点掐掉，
     # 否则一个卡住的分片会把整片拖到超时（实测多等 15 分钟）
