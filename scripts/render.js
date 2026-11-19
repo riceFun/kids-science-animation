@@ -67,12 +67,17 @@ async function shutdown(browser) {
   const tl = JSON.parse(fs.readFileSync(tlPath, 'utf8'));
   const total = tl.segments.reduce((a, s) => a + s.dur, 0);
 
+  /* 光栅化占单帧 99%（截图 49ms，JS+DOM 只有 0.8ms），所以唯一有效的单帧优化是让 GPU 参与。
+     实测 macOS：留着 GPU 41.7ms / 关掉 49.1ms，快 15%，内存不涨。
+     在无 GPU 的容器里反而可能更慢或起不来，用 CHROME_NO_GPU=1 关回去。 */
+  const gpuArgs = process.env.CHROME_NO_GPU === '1' ? ['--disable-gpu'] : [];
   const browser = await puppeteer.launch({
     executablePath: chrome,
     headless: 'shell',
-    args: ['--no-sandbox', '--disable-gpu', '--hide-scrollbars',
+    args: ['--no-sandbox', '--hide-scrollbars',
            `--user-data-dir=${PROFILE}`, '--disable-dev-shm-usage',
-           '--force-color-profile=srgb', '--font-render-hinting=none', '--disable-lcd-text'],
+           '--force-color-profile=srgb', '--font-render-hinting=none', '--disable-lcd-text',
+           ...gpuArgs],
   });
   const page = await browser.newPage();
   await page.setViewport({ width: CW, height: CH, deviceScaleFactor: SCALE });
