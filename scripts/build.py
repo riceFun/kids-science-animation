@@ -30,6 +30,7 @@ import hashlib
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -120,9 +121,9 @@ def auto_jobs(scale):
     实测 1080p 串行 5.3 帧/秒 → 6 进程 27 帧/秒（5.2×）→ 再叠 JPEG 到 55 帧/秒。
     核多也别无限开，每个 Chrome 吃 300–500MB。"""
     n = os.cpu_count() or 4
-    # 默认 6 路（用户指定）。核数不够就按核数收，别开出一堆互相抢内存的进程：
-    # 每个 Chrome 峰值约 700MB，6 路 ≈ 4GB。
-    return 6 if n >= 6 else max(1, n // 2 or 1)
+    # 默认 3 路。实测 6 路在这台机器上互相抢内存，吞吐只有单路的 1/3（7.2 vs 24 帧/秒）；
+    # 每个 Chrome 峰值约 700MB，3 路 ≈ 2GB，留够余量给别的程序。
+    return 3 if n >= 6 else max(1, n // 2 or 1)
 
 
 def render_frames(node_path, tl_path, frames_dir, fps, scale, total, ext, jobs, rough, force=False,
@@ -156,15 +157,21 @@ def render_frames(node_path, tl_path, frames_dir, fps, scale, total, ext, jobs, 
         logs.append((lp, fh))
         procs.append(subprocess.Popen(
             base + ["--from", f"{a0:.3f}", "--to", f"{b0:.3f}"], env=env,
-            stdout=fh, stderr=subprocess.STDOUT))
+            stdout=fh, stderr=subprocess.STDOUT,
+            start_new_session=True))   # 独立进程组：超时可以连同 Chrome 一起杀
     # 兜底超时：正常 1080p 也就 18ms/帧，给到 1s/帧还没完必然是挂住了
-    timeout = max(300, (total * fps) / jobs)
+    # 正常 1080p 约 24 帧/秒，给到 4 帧/秒的余量就够；卡死的分片早点掐掉，
+    # 否则一个卡住的分片会把整片拖到超时（实测多等 15 分钟）
+    timeout = max(240, (total * fps) / jobs / 4)
     bad = 0
     for i, p in enumerate(procs):
         try:
             rc = p.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
-            p.kill()
+            try:
+                os.killpg(os.getpgid(p.pid), signal.SIGKILL)
+            except Exception:  # noqa: BLE001
+                p.kill()
             p.wait()
             rc = -9
             print(f"   分片 {i + 1}/{jobs} 超时（>{timeout:.0f}s），已结束")

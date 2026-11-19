@@ -57,11 +57,33 @@ const PROFILE = `/tmp/kids-chrome-${process.pid}-${Date.now()}`;
 async function shutdown(browser) {
   await Promise.race([
     browser.close().catch(() => {}),
-    new Promise(r => setTimeout(r, 6000)),
+    new Promise(r => setTimeout(r, 4000)),
   ]);
+  /* close() 不返回时，Chrome 的 Helper 进程会一直挂着（用户实测后台堆了十几个）。
+     这里按 user-data-dir 精确清掉本进程拉起来的那一组，别误杀用户自己的浏览器。 */
+  try {
+    const proc = browser.process && browser.process();
+    if (proc && !proc.killed) { try { proc.kill('SIGKILL'); } catch (e) { /* */ } }
+  } catch (e) { /* */ }
+  try {
+    require('child_process').execSync(
+      `pkill -9 -f "user-data-dir=${PROFILE}" || true`, { stdio: 'ignore' });
+  } catch (e) { /* */ }
   try { fs.rmSync(PROFILE, { recursive: true, force: true }); } catch (e) { /* */ }
   process.exit(0);
 }
+
+let BROWSER = null;
+const bail = async (code) => {
+  if (BROWSER) { try { await shutdown(BROWSER); } catch (e) { /* */ } }
+  process.exit(code);
+};
+process.on('SIGINT', () => { bail(130); });
+process.on('SIGTERM', () => { bail(143); });
+process.on('uncaughtException', (e) => {
+  console.error('渲染异常：', String(e).slice(0, 200));
+  bail(1);
+});
 
 (async () => {
   const tl = JSON.parse(fs.readFileSync(tlPath, 'utf8'));
@@ -79,6 +101,7 @@ async function shutdown(browser) {
            '--force-color-profile=srgb', '--font-render-hinting=none', '--disable-lcd-text',
            ...gpuArgs],
   });
+  BROWSER = browser;
   const page = await browser.newPage();
   await page.setViewport({ width: CW, height: CH, deviceScaleFactor: SCALE });
 
