@@ -1554,15 +1554,40 @@ SCENES.photo = {
   mount(host, seg) {
     if (!seg.photo) return () => {};
     const g = el("g", {}, host);
-    // 图比画面大 8%，推近时不会露边
+    /* 照片放进相框，不铺满整屏：
+       整屏铺满时照片和手绘背景是两套语言，切镜像换了部片子。
+       装进圆角相框后，照片变成"这一集的一张插图"，底色沿用场景。 */
+    // 留出底部字幕区（字幕基线 950 起），框最多占到 880
+    const fy = seg.photoY != null ? seg.photoY : 64;
+    const maxH = 880 - fy;
+    let fw = Math.min(1440, W - 400);
+    let fh = Math.round(fw * 9 / 16);
+    if (fh > maxH) { fh = maxH; fw = Math.round(fh * 16 / 9); }
+    const fx = (W - fw) / 2;
+    const r = 30;
+    const cid = "clipPhoto" + (seg.__i != null ? seg.__i : Math.round(fx));
+    const defs = document.getElementById("defs") || host;
+    const cp = el("clipPath", { id: cid }, defs);
+    el("rect", { x: fx, y: fy, width: fw, height: fh, rx: r }, cp);
+    // 投影
+    el("rect", { x: fx + 6, y: fy + 16, width: fw, height: fh, rx: r, fill: INK,
+                 opacity: 0.3, style: "filter:blur(28px)" }, g);
+    // 相框白边
+    el("rect", { x: fx - 14, y: fy - 14, width: fw + 28, height: fh + 28, rx: r + 6,
+                 fill: "#FFFDF6", stroke: INK, "stroke-width": 5 }, g);
+    // 图：比框大 8%，推近时不露边
+    const pad = Math.round(fw * 0.04);
     const img = el("image", {
-      href: seg.photo, x: -80, y: -45, width: W + 160, height: H + 90,
-      preserveAspectRatio: "xMidYMid slice",
+      href: seg.photo, x: fx - pad, y: fy - Math.round(pad * fh / fw),
+      width: fw + pad * 2, height: fh + Math.round(pad * fh / fw * 2),
+      preserveAspectRatio: "xMidYMid slice", "clip-path": `url(#${cid})`,
     }, g);
     // 统一到卡通的色感：暖色软光 + 轻微降饱和由 ffmpeg 负责，这里只加氛围
-    el("rect", { width: W, height: H, fill: "#E8B96A", opacity: 0.10,
-                 style: "mix-blend-mode:soft-light" }, g);
-    el("rect", { width: W, height: H, fill: "url(#gVig)", opacity: 0.55 }, g);
+    el("rect", { x: fx, y: fy, width: fw, height: fh, rx: r, fill: "#E8B96A",
+                 opacity: 0.10, style: "mix-blend-mode:soft-light",
+                 "clip-path": `url(#${cid})` }, g);
+    el("rect", { x: fx, y: fy, width: fw, height: fh, rx: r, fill: "url(#gVig)",
+                 opacity: 0.35, "clip-path": `url(#${cid})` }, g);
 
     // 角标署名：CC BY / CC BY-SA 要求可见署名，右下角小条
     if (seg.credit) {
