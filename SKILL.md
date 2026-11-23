@@ -524,6 +524,55 @@ python3 <skill>/scripts/build.py script.json --grain
 
 1920×1080 / 30fps，编码时叠胶片颗粒。默认 6 进程并行 + JPEG 中间帧，4 分钟片 **约 3–5 分钟**出片（不再需要半小时）。
 
+### 7. 出片后必做：送检 → 按报告修 → 重检
+
+正片生成后不是终点。**必须送 `kids-science-check` 过一遍**，按报告修完再交付。
+
+```bash
+CHECK=/Users/elecard/.agents/skills/kids-science-check
+python3 $CHECK/scripts/check.py <项目目录> --out <项目目录>/review --mode standard
+```
+
+| 模式 | 耗时（4 分钟片） | 用在哪 |
+|---|---|---|
+| `quick` | ~1 分钟 | 初筛；赶时间时 |
+| `standard` | 3–6 分钟 | **默认**，每 6s 抽帧 + 全片 ASR |
+| `deep` | 10 分钟以上 | 上线前终检 |
+
+`check.py` 只读：**它只出报告，不改片**。修复是制作端（这里）的事。
+
+#### 怎么读报告
+
+主产物是 `review/REPORT.jsonl`，一行一条。
+
+| 行 | 怎么读 |
+|---|---|
+| `kind=meta` | `verdict` / `score` / `counts` / `coverage`（帧覆盖率、音频秒数） |
+| `kind=issue` | 已确认问题：`sev` 定级、`t` 时间码、`at` 落点文件、`fix` 建议、`ev` 证据帧 |
+| `kind=unreviewed` | 机器疑点，按半价计分；`gate=true` 的必须先人工确认 |
+| `kind=dismissed` | 已排除，不用看 |
+
+#### 按级别处理
+
+| 级别 | 处理 |
+|---|---|
+| **P0** | **必修**，一票否决。黑屏 >1s、缺岛/腿数错、字幕和语音说两件事、6 岁看不出主角是谁 |
+| **P1** | **必修**。孩子会学错/看漏：背景与台词冲突、术语没解释、字幕漏字、话没说完就切 |
+| **P2** | 酌情修。字号小、镜头太长、连续三段对话 |
+| **P3** | 打磨项，可忽略 |
+
+`references/` 里的 `visual-review.md` / `audio-review.md` / `safety.md` 给了每类的判据。
+
+#### 修完必须重检
+
+1. 按 `at` 定位到 `script.json` / `scenery.js` / `photos/` 修改
+2. 重渲（画面变了就 `--grain --force`；只改文案用 `--no-render`）
+3. **再跑一次 check**，确认 P0/P1 清零
+4. 仍有 P0/P1 → 回到第 1 步；最多 3 轮，3 轮后还不过就如实告诉用户卡在哪
+
+> 别把报告里的 `fix` 原样照抄：`fix` 是给人看的建议，要自己落到具体字段/坐标。
+> 每轮把改了什么、分数变化记在 `review/CHANGELOG.md`，方便回溯。
+
 ### 产物归档（自动）
 
 正片编码完成后，`build.py` 自动把**成片和封面**复制到桌面，按 **话题 → 语言** 两级存放：
