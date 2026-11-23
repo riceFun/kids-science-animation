@@ -931,7 +931,9 @@ def main():
          "-filter_complex",
          "[0:a]volume=0.16[b];[1:a]volume=1.15[v];[2:a]volume=0.55[s];"
          "[b][v][s]amix=inputs=3:duration=first:normalize=0,"
-         "loudnorm=I=-16:TP=-1.5:LRA=11[a]",
+         # TP 留出余量 + alimiter 硬限幅：实测单遍 loudnorm 仍会冒出 +1.3~1.6 dBFS 削波，
+         # 孩子戴耳机会刺耳（check skill P1 clipping）
+         "loudnorm=I=-16:TP=-2.5:LRA=11,alimiter=limit=0.89:attack=5:release=80[a]",
          "-map", "[a]", "-ac", "2", "-ar", "44100", track])
     print("   audio/track.wav")
     step("混音")
